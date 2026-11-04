@@ -5,3 +5,7 @@
 - [포스터 PDF](https://github.com/thanthanni/dokdo-1jo/raw/main/dokdo_1jo_poster.pdf) · [포스터 사진](https://github.com/thanthanni/dokdo-1jo/raw/main/dokdo_1jo_poster.jpg)
 
 사진: Wikimedia Commons (CC BY-SA)
+
+## 낙서 무기 FPS
+
+- [drawing-fps/index.html](drawing-fps/index.html): 직접 그린 그림이 무기가 되는 1인칭 슈팅 게임 (브라우저에서 파일을 열면 바로 실행)
