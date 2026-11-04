@@ -6,6 +6,6 @@
 
 사진: Wikimedia Commons (CC BY-SA)
 
-## 낙서 무기 FPS
+## 낙서 전쟁 (FPS)
 
-- [drawing-fps/index.html](drawing-fps/index.html): 직접 그린 그림이 무기가 되는 1인칭 슈팅 게임 (브라우저에서 파일을 열면 바로 실행)
+- [drawing-fps/index.html](drawing-fps/index.html): 낙서 전쟁: 직접 그린 그림이 무기가 되는 1인칭 슈팅 게임 (브라우저에서 파일을 열면 바로 실행)
