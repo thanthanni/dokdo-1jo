@@ -6,179 +6,194 @@
   <title>낙서 전쟁</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Rajdhani:wght@500;600;700&family=Gaegu:wght@700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink: #14110a; --paper: #f4eddc; --yellow: #ffd23f; --red: #ff5a4e;
-      --text: #f5f2ea; --dim: #9aa3b5; --panel: #161b28; --line: #313a50;
-      --title: 'Black Han Sans', 'Arial Black', sans-serif;
-      --hand: 'Gaegu', 'Comic Sans MS', cursive;
+      --bg: #07090d; --text: #e9edf3; --dim: #8a93a3; --faint: #5c6473;
+      --accent: #f5c542; --danger: #ff4f5e; --line: rgba(255,255,255,.09);
+      --panel: rgba(12,15,22,.78);
+      --kr: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      --num: 'Rajdhani', 'Noto Sans KR', sans-serif;
+      --hand: 'Gaegu', 'Noto Sans KR', cursive;
+      --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #05070c; }
-    body { color: var(--text); font: 15px/1.4 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; user-select: none; -webkit-user-select: none; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+    body { color: var(--text); font: 15px/1.5 var(--kr); user-select: none; -webkit-user-select: none; -webkit-font-smoothing: antialiased; }
     #stage { position: fixed; inset: 0; }
     canvas#game { display: block; width: 100%; height: 100%; cursor: crosshair; }
     .screen { position: absolute; inset: 0; z-index: 5; }
     .hidden { display: none !important; }
     button { font: inherit; color: inherit; }
+    .grain { position: absolute; inset: 0; z-index: 9; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+    .eyebrow { font: 600 13px var(--num); letter-spacing: .32em; color: var(--accent); text-transform: uppercase; }
+    .lbl { display: block; font: 600 12px var(--num); letter-spacing: .24em; color: var(--dim); }
 
-    /* 공통 버튼: 만화 스티커 느낌 */
-    .btn { font-family: var(--title); font-size: 24px; padding: 12px 34px; background: var(--yellow); color: var(--ink);
-      border: 3px solid var(--ink); border-radius: 4px; box-shadow: 5px 5px 0 var(--ink); transform: skew(-7deg);
-      cursor: pointer; transition: transform .08s, box-shadow .08s, filter .1s; }
-    .btn > span { display: inline-block; transform: skew(7deg); }
-    .btn:hover { transform: skew(-7deg) translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
-    .btn:active { transform: skew(-7deg) translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
-    .btn:disabled { filter: grayscale(1) brightness(.6); cursor: not-allowed; transform: skew(-7deg); box-shadow: 5px 5px 0 var(--ink); }
-    .btn.big { font-size: 34px; padding: 14px 0; width: 100%; }
-    kbd { display: inline-block; min-width: 26px; padding: 2px 7px; margin-right: 4px; text-align: center; font: 13px var(--title);
-      border: 1px solid #ffffff45; border-bottom-width: 3px; border-radius: 5px; background: #ffffff12; color: #fff; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--dim); font-size: 13px; }
-    .controls div { white-space: nowrap; }
+    /* 버튼 */
+    .btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 12px; border: 0; cursor: pointer;
+      padding: 15px 34px; background: var(--accent); color: #15120a; font: 700 17px var(--kr); letter-spacing: .02em;
+      clip-path: var(--cut); transition: filter .12s, transform .08s; }
+    .btn small { font: 600 12px var(--num); letter-spacing: .2em; opacity: .55; }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { background: #2a2f3a; color: #687183; cursor: not-allowed; filter: none; }
+    .btn.big { width: 100%; padding: 18px; font-size: 19px; }
+    .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; cursor: pointer; color: #c9d0db;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 6px; transition: background .1s, color .1s, border-color .1s; }
+    .icon-btn:hover { background: rgba(255,255,255,.09); color: #fff; }
+    .icon-btn.active { color: var(--accent); border-color: rgba(245,197,66,.55); background: rgba(245,197,66,.08); }
+    .icon-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-btn i { display: block; border-radius: 50%; background: currentColor; }
+
+    /* 메뉴 리스트 (타이틀 / 일시정지 공용) */
+    .menu-list { display: flex; flex-direction: column; gap: 2px; }
+    .menu-item { position: relative; display: flex; align-items: baseline; gap: 16px; width: 100%; text-align: left; cursor: pointer;
+      padding: 12px 18px; border: 0; background: transparent; color: #c3cad6; font: 700 21px var(--kr); transition: color .12s, background .12s, padding .12s; }
+    .menu-item .idx { font: 600 13px var(--num); letter-spacing: .1em; color: var(--faint); transition: color .12s; }
+    .menu-item::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: var(--accent); transform: scaleY(0); transition: transform .14s; }
+    .menu-item:hover, .menu-item:focus-visible { color: #fff; padding-left: 26px; outline: none; background: linear-gradient(90deg, rgba(245,197,66,.14), transparent 80%); }
+    .menu-item:hover .idx, .menu-item:focus-visible .idx { color: var(--accent); }
+    .menu-item:hover::before, .menu-item:focus-visible::before { transform: scaleY(1); }
+    .controls { display: grid; grid-template-columns: repeat(2, auto); justify-content: start; gap: 8px 28px; font-size: 13px; color: var(--dim); }
+    .controls div { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; font: 600 13px var(--num); color: #dfe4ec;
+      border: 1px solid rgba(255,255,255,.18); border-radius: 4px; background: rgba(255,255,255,.05); }
 
     /* ── 타이틀 ── */
-    #title { background: radial-gradient(ellipse at 30% 50%, #05070c55 0%, #05070cdd 75%); display: flex; flex-direction: column; justify-content: center; padding: 0 9vw; }
-    .logo { font-family: var(--title); font-size: clamp(76px, 13vw, 160px); line-height: .88; color: var(--yellow);
-      -webkit-text-stroke: 4px var(--ink); text-shadow: 9px 9px 0 var(--ink); transform: rotate(-5deg); transform-origin: left center; margin: 0; font-weight: normal; }
-    .logo span { display: block; color: #fff; margin-left: .55em; }
-    .tagline { font-family: var(--hand); font-weight: 700; font-size: clamp(24px, 3vw, 36px); color: #fff; margin: 22px 0 36px 6px; transform: rotate(-2deg); transform-origin: left; }
-    .tagline mark { background: linear-gradient(transparent 55%, #ffd23faa 55%, #ffd23faa 88%, transparent 88%); color: inherit; padding: 0 4px; }
-    #title .btn { align-self: flex-start; }
-    .title-foot { position: absolute; left: 9vw; right: 4vw; bottom: 26px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
-    .best-box { font-family: var(--title); color: var(--dim); font-size: 15px; text-align: right; }
-    .best-box b { display: block; color: var(--yellow); font-size: 34px; font-weight: normal; }
+    #title { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 8vw;
+      background: linear-gradient(90deg, rgba(5,7,11,.92) 0%, rgba(5,7,11,.6) 45%, rgba(5,7,11,.1) 100%); }
+    .logo { margin: 14px 0 0; font: 900 clamp(64px, 9vw, 124px)/1 var(--kr); letter-spacing: -.04em; color: #fff; text-shadow: 0 10px 40px rgba(0,0,0,.5); }
+    .logo-wrap { position: relative; display: inline-block; }
+    .scribble { position: absolute; left: 48%; bottom: -14px; width: 54%; height: 30px; overflow: visible; }
+    .scribble path { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1s .3s ease-out forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    .logo-sub { margin-top: 26px; font: 600 15px var(--num); letter-spacing: .5em; color: var(--dim); }
+    .title-desc { max-width: 420px; margin: 22px 0 40px; color: #b7bfcc; font-size: 15px; line-height: 1.75; }
+    #title .menu-list { width: 320px; }
+    #title-controls { margin-top: 18px; padding: 16px 18px; width: max-content; background: rgba(255,255,255,.03); border-left: 2px solid var(--line); }
+    .title-foot { position: absolute; left: 8vw; right: 4vw; bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .best-box { text-align: right; }
+    .best-box b { display: block; font: 700 38px/1 var(--num); color: #fff; }
+    .ver { font: 500 12px var(--num); letter-spacing: .2em; color: var(--faint); }
 
     /* ── 무기 제작 ── */
-    #workshop { background: #070a12d9; overflow: auto; }
-    .ws-top { display: flex; align-items: center; gap: 16px; padding: 18px 28px 8px; }
-    .ws-title { font-family: var(--title); font-weight: normal; font-size: 34px; margin: 0;
-      background: linear-gradient(transparent 60%, #ffd23f66 60%, #ffd23f66 92%, transparent 92%); padding: 0 6px; }
-    .ws-status { margin-left: auto; font-family: var(--title); color: var(--dim); }
-    .ws-body { display: flex; justify-content: center; align-items: flex-start; gap: 44px; padding: 14px 28px 30px; }
-    .ws-left { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-    .paper { position: relative; width: min(420px, 52vh, calc(100vw - 56px)); aspect-ratio: 1; background-color: var(--paper);
-      background-image: linear-gradient(90deg, transparent 34px, #e8646455 34px, #e8646455 36px, transparent 36px),
-        repeating-linear-gradient(transparent 0 25px, #7fa6d455 25px 26px);
-      box-shadow: 0 2px 0 #d9cfb6, 0 22px 44px #000a; border-radius: 2px; }
-    .paper::before { content: ''; position: absolute; inset: 0; z-index: -1; background: #e6dcc4; transform: rotate(3deg); box-shadow: 0 12px 30px #0008; border-radius: 2px; }
-    .tape { position: absolute; width: 96px; height: 28px; background: #f6e7aac0; box-shadow: 0 1px 2px #0002; z-index: 2; pointer-events: none; }
-    .tape.l { left: -26px; top: -6px; transform: rotate(-32deg); }
-    .tape.r { right: -26px; top: -6px; transform: rotate(30deg); }
+    #workshop { overflow: auto; background: radial-gradient(ellipse at 50% 40%, rgba(7,9,13,.82), rgba(7,9,13,.96)); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .ws-top { display: flex; align-items: center; gap: 18px; padding: 22px 34px 6px; }
+    .ws-title { margin: 0; font: 900 28px/1.1 var(--kr); letter-spacing: -.02em; }
+    .ws-status { margin-left: auto; text-align: right; }
+    .ws-status b { display: block; font: 700 22px/1 var(--num); }
+    .ws-body { display: flex; justify-content: center; align-items: flex-start; gap: 28px; padding: 18px 34px 34px; }
+    .panel { position: relative; background: var(--panel); border: 1px solid var(--line); padding: 18px; }
+    .panel::before, .panel::after { content: ''; position: absolute; width: 14px; height: 14px; border: 2px solid var(--accent); pointer-events: none; }
+    .panel::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+    .panel::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+    .panel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .panel-head strong { font-weight: 700; font-size: 15px; }
+    .panel-head span { font-size: 12px; color: var(--dim); }
+    .paper { position: relative; width: min(400px, 50vh, calc(100vw - 106px)); aspect-ratio: 1; border-radius: 2px;
+      background-color: #f1ece2; background-image: radial-gradient(circle, rgba(60,50,30,.16) 1px, transparent 1.4px); background-size: 20px 20px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), inset 0 0 40px rgba(120,100,60,.12); }
     #pad { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
     #pad-hint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none;
-      font-family: var(--hand); font-size: 30px; font-weight: 700; color: #a49a82; line-height: 1.2; transform: rotate(-4deg); }
-    #pad-hint small { display: block; font-size: 21px; font-weight: 400; }
-    .muzzle-note { position: absolute; right: 8px; bottom: 6px; font-family: var(--hand); font-weight: 700; font-size: 21px; color: #d65050; pointer-events: none; transform: rotate(-3deg); }
-    .tray { width: min(420px, calc(100vw - 56px)); }
-    .crayons { display: flex; justify-content: center; gap: 10px; height: 70px; overflow: hidden; padding: 0 14px;
-      background: linear-gradient(transparent 46px, #2b3142 46px); border-radius: 0 0 8px 8px; }
-    .crayon { width: 34px; height: 80px; flex: 0 0 auto; padding: 0; border: 0; cursor: pointer;
-      background: linear-gradient(#ffffff45 0 20%, transparent 20% 46%, #00000030 46% 52%, transparent 52% 66%, #00000030 66% 72%, transparent 72%), var(--c);
-      clip-path: polygon(30% 0, 70% 0, 100% 20%, 100% 100%, 0 100%, 0 20%); transform: translateY(22px); transition: transform .15s; }
-    .crayon:hover { transform: translateY(14px); }
-    .crayon.active { transform: translateY(2px); }
-    .tool-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-    .tool-sep { width: 1px; height: 28px; background: var(--line); margin: 0 4px; }
-    .icon-btn { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; cursor: pointer;
-      background: #1b2130; border: 2px solid var(--line); border-radius: 8px; color: #dfe4ee; transition: border-color .1s, color .1s, transform .08s; }
-    .icon-btn:hover { border-color: #5a6680; }
-    .icon-btn:active { transform: scale(.94); }
-    .icon-btn.active { border-color: var(--yellow); color: var(--yellow); }
-    .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-    .icon-btn i { display: block; border-radius: 50%; background: currentColor; }
-    .crayon-label { margin-top: 10px; text-align: center; font-family: var(--hand); font-weight: 700; font-size: 22px; color: #e9e2cf; }
-    .ws-right { width: min(390px, calc(100vw - 56px)); display: flex; flex-direction: column; gap: 22px; }
-    .item-card { --tc: #9aa3b5; position: relative; overflow: hidden; padding: 18px 20px 20px; border-radius: 10px;
-      background: linear-gradient(165deg, #1c2333, #10141e 70%); border: 2px solid var(--tc);
-      box-shadow: 0 0 0 1px #000, 0 0 34px color-mix(in srgb, var(--tc) 30%, transparent); transition: border-color .2s, box-shadow .2s; }
-    .item-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 90px; background: linear-gradient(color-mix(in srgb, var(--tc) 22%, transparent), transparent); pointer-events: none; }
-    .ic-head { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .tier { font-family: var(--title); font-size: 14px; color: var(--ink); background: var(--tc); padding: 3px 12px; transform: skew(-12deg); letter-spacing: .08em; }
-    .ic-kind { font-family: var(--title); font-size: 13px; color: var(--dim); }
-    .ic-main { position: relative; display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
-    #w-thumb { width: 92px; height: 92px; flex: 0 0 auto; border-radius: 8px; border: 1px solid #ffffff1c;
-      background: radial-gradient(circle, color-mix(in srgb, var(--tc) 40%, #0b0e16), #0b0e16 72%); }
-    #w-name { font-family: var(--title); font-weight: normal; font-size: 25px; line-height: 1.15; margin: 0 0 4px; }
-    #w-type { margin: 0; color: var(--dim); font-size: 13px; }
-    .stat { display: grid; grid-template-columns: 58px 1fr 76px; gap: 10px; align-items: center; margin: 8px 0; }
-    .stat > span { font-family: var(--title); font-size: 14px; color: #c9cfdb; }
-    .stat b { text-align: right; font-weight: normal; font-family: var(--title); font-size: 14px; color: var(--dim); }
-    .segs { display: flex; gap: 3px; }
-    .segs i { flex: 1; height: 11px; background: #283043; transform: skew(-20deg); }
-    .segs i.on { background: var(--yellow); }
-    .effects { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-    .fx { display: flex; align-items: center; gap: 7px; font-size: 13px; padding: 5px 10px 5px 7px; background: #ffffff0d; border: 1px solid #ffffff14; border-radius: 4px; }
-    .fx i { width: 11px; height: 11px; transform: rotate(45deg); background: var(--c); box-shadow: 0 0 8px var(--c); }
-    .fx b { font-family: var(--title); font-weight: normal; }
-    .empty-note { font-family: var(--hand); font-size: 22px; color: var(--dim); text-align: center; padding: 26px 0 10px; }
-    .ws-tip { font-size: 14px; color: #cfd5e0; min-height: 40px; }
-    .ws-tip b { font-family: var(--title); font-weight: normal; color: var(--ink); background: var(--yellow); padding: 1px 7px; margin-right: 8px; }
+      font: 700 28px/1.25 var(--hand); color: #a89f8b; }
+    #pad-hint small { display: block; font-size: 20px; }
+    .muzzle-note { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 700 18px var(--hand); color: #c45b4c; pointer-events: none; opacity: .8; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+    .swatches { display: flex; gap: 9px; }
+    .swatch { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--c);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); transition: transform .1s, box-shadow .1s; }
+    .swatch:hover { transform: scale(1.1); }
+    .swatch.active { box-shadow: 0 0 0 2px #0c0f16, 0 0 0 4px #fff; }
+    .tools { display: flex; gap: 5px; }
+    .tool-sep { width: 1px; background: var(--line); margin: 6px 3px; }
+    .color-info { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #b8c0cc; min-height: 20px; }
+    .color-info i { width: 9px; height: 9px; transform: rotate(45deg); background: var(--c); }
+    .color-info b { color: #fff; font-weight: 700; }
+    .ws-right { width: min(380px, calc(100vw - 68px)); display: flex; flex-direction: column; gap: 16px; }
+    .item-card { --tc: #8a93a3; padding: 20px; }
+    .item-card::before, .item-card::after { border-color: var(--tc); }
+    .ic-top { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .tier { display: flex; align-items: center; gap: 7px; font: 700 13px var(--num); letter-spacing: .2em; color: var(--tc); }
+    .tier::before { content: ''; width: 8px; height: 8px; transform: rotate(45deg); background: var(--tc); box-shadow: 0 0 10px var(--tc); }
+    .ic-kind { font-size: 12px; color: var(--dim); }
+    .ic-main { display: flex; gap: 14px; align-items: center; padding-bottom: 16px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+    #w-thumb { width: 76px; height: 76px; flex: 0 0 auto; border: 1px solid var(--line);
+      background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--tc) 28%, transparent), transparent 70%), rgba(255,255,255,.02); }
+    #w-name { margin: 0 0 3px; font: 900 21px/1.25 var(--kr); letter-spacing: -.02em; }
+    #w-type { margin: 0; font-size: 12px; color: var(--dim); }
+    .stat { display: grid; grid-template-columns: 54px 1fr 64px; gap: 12px; align-items: center; margin: 9px 0; }
+    .stat > span { font-size: 13px; color: #aeb6c3; }
+    .stat .bar { height: 4px; background: rgba(255,255,255,.08); }
+    .stat .bar i { display: block; height: 100%; background: var(--tc); box-shadow: 0 0 8px color-mix(in srgb, var(--tc) 60%, transparent); transition: width .25s; }
+    .stat b { text-align: right; font: 700 16px var(--num); color: #e4e8ee; }
+    .effects { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+    .fx { display: flex; align-items: center; gap: 7px; padding: 5px 10px; font-size: 12px; color: #c7cdd7; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+    .fx i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+    .fx b { font-weight: 700; color: #fff; }
+    .empty-note { padding: 34px 0 22px; text-align: center; color: var(--dim); font-size: 14px; }
+    .ws-tip { display: flex; gap: 10px; font-size: 13px; color: #aab2bf; line-height: 1.6; min-height: 44px; }
+    .ws-tip b { flex: 0 0 auto; font: 700 12px/20px var(--num); letter-spacing: .15em; color: var(--accent); }
 
     /* ── HUD ── */
-    #hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--title); text-shadow: 0 2px 0 #000b; }
-    #hud small { display: block; font-size: 13px; color: #c6ccd8; letter-spacing: .08em; }
-    .hud-score { position: absolute; left: 26px; top: 18px; }
-    .hud-score b { font-size: 36px; font-weight: normal; line-height: 1; }
-    .hud-wave { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); text-align: center; }
-    .hud-wave strong { display: block; font-size: 26px; font-weight: normal; }
-    .enemy-track { width: 230px; height: 6px; margin: 6px auto 4px; background: #0008; border: 1px solid #ffffff25; }
-    #enemy-fill { height: 100%; width: 100%; background: var(--red); transition: width .2s; }
-    #enemy-label { font-size: 13px; color: #d7dce5; }
-    #tip { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); font-size: 15px; color: var(--yellow); white-space: nowrap; }
-    #killfeed { position: absolute; right: 20px; top: 172px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-    .kf { font-size: 15px; background: #000a; padding: 4px 12px; border-right: 3px solid var(--yellow); animation: kf-in .18s ease-out; transition: opacity .4s; }
-    .kf em { font-style: normal; color: var(--yellow); margin-left: 6px; }
-    @keyframes kf-in { from { transform: translateX(30px); opacity: 0; } }
-    #banner { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .35s; white-space: nowrap; }
+    #hud { position: absolute; inset: 0; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+    .hud-score { position: absolute; left: 28px; top: 22px; }
+    .hud-score b { font: 700 34px/1 var(--num); }
+    .hud-wave { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); text-align: center; }
+    .hud-wave .w { font: 700 22px/1 var(--num); letter-spacing: .28em; padding-left: .28em; }
+    .enemy-track { width: 200px; height: 3px; margin: 9px auto 6px; background: rgba(255,255,255,.14); }
+    #enemy-fill { display: block; height: 100%; width: 100%; background: var(--danger); transition: width .2s; }
+    #enemy-label { font-size: 12px; color: #c9cfd9; }
+    #tip { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); font-size: 13px; color: var(--accent); white-space: nowrap; }
+    #killfeed { position: absolute; right: 22px; top: 176px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .kf { display: flex; gap: 10px; align-items: baseline; padding: 5px 12px; font-size: 13px; background: rgba(8,10,15,.6); border-right: 2px solid var(--accent);
+      animation: kf-in .18s ease-out; transition: opacity .4s; }
+    .kf em { font: 700 14px var(--num); font-style: normal; color: var(--accent); }
+    @keyframes kf-in { from { transform: translateX(24px); opacity: 0; } }
+    #banner { position: absolute; left: 50%; top: 23%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s; white-space: nowrap; }
     #banner.show { opacity: 1; }
-    #banner.show h3 { animation: pop .35s cubic-bezier(.2, 1.6, .4, 1); }
-    #banner h3 { margin: 0; font-size: clamp(44px, 7vw, 76px); font-weight: normal; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); text-shadow: 6px 6px 0 var(--ink); transform: rotate(-3deg); }
-    #banner p { margin: 10px 0 0; font-family: var(--hand); font-weight: 700; font-size: 26px; color: #fff; text-shadow: 0 2px 4px #000; }
-    @keyframes pop { from { transform: rotate(-3deg) scale(1.6); opacity: 0; } }
-    .hud-hp { position: absolute; left: 26px; bottom: 24px; display: flex; align-items: flex-end; gap: 12px; }
-    .hud-hp svg { width: 30px; height: 30px; fill: #fff; margin-bottom: 4px; filter: drop-shadow(0 2px 0 #000b); }
-    .hp-num { font-size: 56px; line-height: .82; }
-    .hud-hp.low .hp-num, .hud-hp.low svg { color: var(--red); fill: var(--red); animation: blink .6s infinite alternate; }
-    @keyframes blink { to { opacity: .45; } }
-    .hp-bar { width: 220px; height: 16px; margin-bottom: 6px; background: #0009; border: 2px solid #ffffff35; transform: skew(-20deg); overflow: hidden; }
-    #hp-fill { height: 100%; width: 100%; background: linear-gradient(#fff, #d8dde6); transition: width .15s; }
-    .hud-hp.low #hp-fill { background: var(--red); }
-    .hud-ammo { position: absolute; right: 26px; bottom: 22px; display: flex; align-items: flex-end; gap: 16px; text-align: right; }
-    #weapon-thumb { width: 120px; height: 76px; filter: drop-shadow(0 3px 0 #000a); }
-    #weapon-name { font-size: 14px; color: #c6ccd8; margin-bottom: 2px; }
-    .ammo-line { line-height: .85; }
-    #ammo { font-size: 58px; }
-    #ammo-max { font-size: 22px; color: #c6ccd8; margin-left: 4px; }
+    #banner h3 { margin: 8px 0 6px; font: 700 clamp(46px, 6.5vw, 78px)/1 var(--num); letter-spacing: .16em; padding-left: .16em; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+    #banner.show h3 { animation: track .6s cubic-bezier(.2,.8,.2,1); }
+    #banner.good h3 { color: var(--accent); }
+    #banner p { margin: 0; font-size: 15px; color: #d5dae3; }
+    #banner .bn-line { width: 260px; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); }
+    @keyframes track { from { letter-spacing: .6em; opacity: 0; } }
+    .hud-hp { position: absolute; left: 28px; bottom: 26px; }
+    .hp-row { display: flex; align-items: center; gap: 14px; margin-top: 2px; }
+    .hp-row b { min-width: 74px; font: 700 48px/1 var(--num); }
+    .hp-bar { width: 220px; height: 6px; background: rgba(255,255,255,.14); }
+    #hp-fill { display: block; height: 100%; width: 100%; background: #f2f4f7; transition: width .15s; }
+    .hud-hp.low b { color: var(--danger); animation: blink .6s infinite alternate; }
+    .hud-hp.low #hp-fill { background: var(--danger); }
+    @keyframes blink { to { opacity: .5; } }
+    .hud-ammo { position: absolute; right: 28px; bottom: 24px; display: flex; align-items: flex-end; gap: 16px; text-align: right; }
+    #weapon-thumb { display: none; }
+    #weapon-name { font-size: 12px; color: #c9cfd9; }
+    .ammo-line { margin-top: 2px; }
+    #ammo { font: 700 50px/1 var(--num); }
+    #ammo-max { font: 600 20px var(--num); color: var(--dim); margin-left: 6px; }
     #ammo-pips { display: flex; gap: 3px; justify-content: flex-end; margin-top: 8px; }
-    #ammo-pips i { width: 6px; height: 14px; background: var(--yellow); transform: skew(-18deg); }
-    #ammo-pips i.empty { background: #ffffff26; }
-    .hud-ammo.reloading #ammo { font-size: 30px; color: var(--yellow); animation: blink .35s infinite alternate; }
+    #ammo-pips i { width: 4px; height: 12px; background: #f2f4f7; }
+    #ammo-pips i.empty { background: rgba(255,255,255,.18); }
+    .hud-ammo.reloading #ammo { font-size: 26px; letter-spacing: .1em; color: var(--accent); animation: blink .35s infinite alternate; }
 
-    /* ── 일시정지 / 패배 메뉴 ── */
-    #menu { display: flex; align-items: center; padding-left: 9vw; background: linear-gradient(90deg, #05070cf2 0%, #05070cc0 42%, #05070c55 100%); }
-    .menu-box { width: min(460px, 86vw); }
-    #menu-title { font-family: var(--title); font-weight: normal; font-size: clamp(56px, 8vw, 84px); line-height: 1; margin: 0 0 18px;
-      color: #fff; -webkit-text-stroke: 3px var(--ink); text-shadow: 6px 6px 0 var(--ink); }
-    #menu.lose #menu-title { color: var(--red); transform: rotate(-4deg); transform-origin: left; }
-    .menu-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 22px; }
-    .menu-stats div { background: #ffffff0b; border-left: 3px solid var(--yellow); padding: 8px 14px; font-family: var(--title); }
-    .menu-stats small { display: block; color: var(--dim); font-size: 13px; }
-    .menu-stats b { font-size: 30px; font-weight: normal; }
-    .new-best { display: inline-block; font-family: var(--title); color: var(--ink); background: var(--yellow); padding: 3px 12px; transform: skew(-10deg) rotate(-2deg); margin-bottom: 14px; }
-    .menu-list { display: flex; flex-direction: column; margin-bottom: 26px; }
-    .menu-item { position: relative; text-align: left; font-family: var(--title); font-size: 28px; background: none; border: 0; padding: 9px 18px 9px 40px; cursor: pointer; color: #e8e4da; transition: color .1s, padding .12s; }
-    .menu-item::before { content: ''; position: absolute; inset: 0; background: var(--yellow); transform: skew(-12deg) scaleX(0); transform-origin: left; transition: transform .14s; z-index: -1; }
-    .menu-item::after { content: '▶'; position: absolute; left: 14px; top: 50%; font-size: 15px; transform: translateY(-50%); opacity: 0; }
-    .menu-item:hover, .menu-item:focus-visible { color: var(--ink); padding-left: 48px; outline: none; }
-    .menu-item:hover::before, .menu-item:focus-visible::before { transform: skew(-12deg) scaleX(1); }
-    .menu-item:hover::after, .menu-item:focus-visible::after { opacity: 1; left: 20px; }
-    .menu-list { isolation: isolate; }
+    /* ── 일시정지 / 패배 ── */
+    #menu { background: linear-gradient(90deg, rgba(6,8,12,.94) 0, rgba(6,8,12,.86) 480px, rgba(6,8,12,.35) 100%); }
+    .side-panel { position: absolute; left: 0; top: 0; bottom: 0; width: min(480px, 100vw); padding: 0 52px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--line); }
+    #menu-title { margin: 10px 0 26px; font: 900 52px/1 var(--kr); letter-spacing: -.03em; }
+    #menu.lose .eyebrow { color: var(--danger); }
+    .menu-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; margin-bottom: 26px; background: var(--line); border: 1px solid var(--line); }
+    .menu-stats div { padding: 12px 16px; background: #0c0f16; }
+    .menu-stats b { display: block; margin-top: 2px; font: 700 32px/1 var(--num); }
+    .new-best { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: 700; font-size: 13px; color: var(--accent); }
+    .new-best::before { content: ''; width: 8px; height: 8px; transform: rotate(45deg); background: var(--accent); }
+    .side-panel .menu-list { margin: 0 -18px 34px; }
 
-    @media (max-width: 860px) {
+    @media (max-width: 900px) {
       .ws-body { flex-direction: column; align-items: center; }
-      .hp-bar { width: 140px; }
+      .hp-bar { width: 130px; }
       #weapon-thumb { display: none; }
+      .side-panel { padding: 0 28px; }
     }
   </style>
 </head>
@@ -186,20 +201,16 @@
   <div id="stage">
     <canvas id="game" aria-label="낙서 전쟁 전장"></canvas>
 
-    <!-- 게임 중 HUD -->
+    <!-- HUD -->
     <div id="hud" class="hidden">
-      <div class="hud-score"><small>점수</small><b id="score">0</b></div>
-      <div class="hud-wave"><strong id="wave-label">웨이브 1</strong><div class="enemy-track"><div id="enemy-fill"></div></div><span id="enemy-label"></span></div>
+      <div class="hud-score"><span class="lbl">SCORE</span><b id="score">0</b></div>
+      <div class="hud-wave"><div class="w" id="wave-label">WAVE 1</div><div class="enemy-track"><i id="enemy-fill"></i></div><span id="enemy-label"></span></div>
       <div id="tip"></div>
       <div id="killfeed"></div>
-      <div id="banner"><h3 id="banner-title"></h3><p id="banner-text"></p></div>
-      <div class="hud-hp" id="hud-hp">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z"/></svg>
-        <span class="hp-num" id="hp-text">100</span>
-        <div class="hp-bar"><div id="hp-fill"></div></div>
-      </div>
+      <div id="banner"><div class="eyebrow" id="banner-eyebrow"></div><h3 id="banner-title"></h3><div class="bn-line"></div><p id="banner-text"></p></div>
+      <div class="hud-hp" id="hud-hp"><span class="lbl">HP</span><div class="hp-row"><b id="hp-text">100</b><div class="hp-bar"><i id="hp-fill"></i></div></div></div>
       <div class="hud-ammo" id="hud-ammo">
-        <canvas id="weapon-thumb" width="240" height="152"></canvas>
+        <canvas id="weapon-thumb" width="192" height="120"></canvas>
         <div>
           <div id="weapon-name"></div>
           <div class="ammo-line"><span id="ammo">0</span><span id="ammo-max">/ 0</span></div>
@@ -210,23 +221,35 @@
 
     <!-- 타이틀 -->
     <div id="title" class="screen">
-      <h1 class="logo">낙서<span>전쟁</span></h1>
-      <p class="tagline">내가 <mark>그린 대로</mark> 쏜다!</p>
-      <button class="btn" id="start-btn"><span>게임 시작</span></button>
+      <div class="eyebrow">Draw · Forge · Fight</div>
+      <div class="logo-wrap">
+        <h1 class="logo">낙서 전쟁</h1>
+        <svg class="scribble" viewBox="0 0 300 30" preserveAspectRatio="none" aria-hidden="true"><path d="M4 20 C 60 8, 120 26, 180 14 S 270 10, 296 18"/></svg>
+      </div>
+      <div class="logo-sub">DOODLE WARFARE</div>
+      <p class="title-desc">종이에 그린 그림이 그대로 무기가 됩니다. 모양과 색에 따라 위력도, 탄도, 특수 효과도 달라져요.</p>
+      <div class="menu-list">
+        <button class="menu-item" id="start-btn"><span class="idx">01</span>게임 시작</button>
+        <button class="menu-item" id="controls-btn"><span class="idx">02</span>조작법</button>
+      </div>
+      <div class="controls hidden" id="title-controls">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>이동</div>
+        <div><kbd>마우스</kbd>조준</div>
+        <div><kbd>클릭</kbd>사격</div>
+        <div><kbd>R</kbd>재장전</div>
+        <div><kbd>Q</kbd>무기 다시 그리기</div>
+        <div><kbd>Esc</kbd>일시정지</div>
+      </div>
       <div class="title-foot">
-        <div class="controls">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>이동</div>
-          <div><kbd>마우스</kbd>조준 · 사격</div>
-          <div><kbd>R</kbd>재장전</div>
-          <div><kbd>Q</kbd>무기 다시 그리기</div>
-        </div>
-        <div class="best-box">최고 기록<b id="title-best">0</b></div>
+        <span class="ver">BUILD 1.2</span>
+        <div class="best-box"><span class="lbl">BEST SCORE</span><b id="title-best">0</b></div>
       </div>
     </div>
 
     <!-- 일시정지 / 패배 -->
     <div id="menu" class="screen hidden">
-      <div class="menu-box">
+      <div class="side-panel">
+        <div class="eyebrow" id="menu-eyebrow">PAUSED</div>
         <h2 id="menu-title">일시정지</h2>
         <div id="menu-extra"></div>
         <div class="menu-list" id="menu-list"></div>
@@ -236,8 +259,7 @@
           <div><kbd>클릭</kbd><kbd>Space</kbd>사격</div>
           <div><kbd>R</kbd>재장전</div>
           <div><kbd>Q</kbd>무기 다시 그리기</div>
-          <div><kbd>M</kbd>소리</div>
-          <div><kbd>Esc</kbd>일시정지</div>
+          <div><kbd>M</kbd>소리 켜기/끄기</div>
         </div>
       </div>
     </div>
@@ -245,48 +267,49 @@
     <!-- 무기 제작 -->
     <div id="workshop" class="screen hidden">
       <div class="ws-top">
-        <button class="icon-btn" id="ws-back" title="돌아가기" aria-label="돌아가기"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-        <h2 class="ws-title">무기 제작</h2>
-        <span class="ws-status" id="ws-status"></span>
+        <button class="icon-btn" id="ws-back" title="돌아가기 (Esc)" aria-label="돌아가기"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div><div class="eyebrow">Forge</div><h2 class="ws-title">무기 제작</h2></div>
+        <div class="ws-status" id="ws-status"></div>
       </div>
       <div class="ws-body">
-        <div class="ws-left">
+        <section class="panel">
+          <div class="panel-head"><strong>캔버스</strong><span>오른쪽 끝이 총구가 돼요</span></div>
           <div class="paper">
-            <span class="tape l"></span><span class="tape r"></span>
             <canvas id="pad" width="400" height="400" aria-label="무기 그림판"></canvas>
-            <div id="pad-hint">여기에 무기를 그려!<small>총, 칼, 지팡이, 아무 낙서나</small></div>
-            <div class="muzzle-note">총구는 이쪽 →</div>
+            <div id="pad-hint">여기에 무기를 그려보세요<small>총, 칼, 지팡이, 아무 낙서나</small></div>
+            <div class="muzzle-note">→</div>
           </div>
-          <div class="tray">
-            <div class="crayons" id="palette"></div>
-            <div class="tool-row">
-              <button class="icon-btn" data-size="5" title="가늘게" aria-label="가늘게"><i style="width:6px;height:6px"></i></button>
-              <button class="icon-btn active" data-size="10" title="보통" aria-label="보통"><i style="width:11px;height:11px"></i></button>
-              <button class="icon-btn" data-size="18" title="굵게" aria-label="굵게"><i style="width:18px;height:18px"></i></button>
+          <div class="toolbar">
+            <div class="swatches" id="palette"></div>
+            <div class="tools">
+              <button class="icon-btn" data-size="5" title="가늘게" aria-label="가늘게"><i style="width:5px;height:5px"></i></button>
+              <button class="icon-btn active" data-size="10" title="보통" aria-label="보통"><i style="width:9px;height:9px"></i></button>
+              <button class="icon-btn" data-size="18" title="굵게" aria-label="굵게"><i style="width:15px;height:15px"></i></button>
               <span class="tool-sep"></span>
               <button class="icon-btn" id="eraser" title="지우개" aria-label="지우개"><svg viewBox="0 0 24 24"><path d="M16 3l5 5-11 11H5l-2-2z"/><path d="M10 19h11"/><path d="M11 8l5 5"/></svg></button>
-              <button class="icon-btn" id="undo" title="되돌리기" aria-label="되돌리기"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
+              <button class="icon-btn" id="undo" title="되돌리기 (Ctrl+Z)" aria-label="되돌리기"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
               <button class="icon-btn" id="clear" title="전부 지우기" aria-label="전부 지우기"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg></button>
-              <button class="icon-btn" id="example" title="예시 그림" aria-label="예시 그림"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="16" cy="16" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg></button>
+              <button class="icon-btn" id="example" title="예시 그림" aria-label="예시 그림"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></button>
             </div>
-            <div class="crayon-label" id="crayon-label"></div>
           </div>
-        </div>
-        <div class="ws-right">
-          <div class="item-card" id="item-card">
-            <div class="ic-head"><span class="tier" id="w-tier">—</span><span class="ic-kind" id="w-kind"></span></div>
+          <div class="color-info" id="crayon-label"></div>
+        </section>
+        <section class="ws-right">
+          <div class="panel item-card" id="item-card">
+            <div class="ic-top"><span class="tier" id="w-tier">—</span><span class="ic-kind" id="w-kind"></span></div>
             <div class="ic-main">
-              <canvas id="w-thumb" width="184" height="184"></canvas>
+              <canvas id="w-thumb" width="152" height="152"></canvas>
               <div><h3 id="w-name">빈 종이</h3><p id="w-type">그리는 순간 무기가 돼요</p></div>
             </div>
             <div id="w-stats"></div>
             <div class="effects" id="w-effects"></div>
           </div>
-          <button class="btn big" id="forge" disabled><span>출격!</span></button>
+          <button class="btn big" id="forge" disabled><span id="forge-label">출격</span><small>ENTER</small></button>
           <div class="ws-tip"><b>TIP</b><span id="ws-tip"></span></div>
-        </div>
+        </section>
       </div>
     </div>
+    <div class="grain"></div>
   </div>
 
   <script>
@@ -294,7 +317,7 @@
     const $ = s => document.querySelector(s);
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const rand = (a, b) => a + Math.random() * (b - a);
-    const FONT = "'Black Han Sans', 'Arial Black', sans-serif";
+    const NUM_FONT = "'Rajdhani', 'Noto Sans KR', sans-serif";
 
     // ───────────────────────── 색깔(속성) ─────────────────────────
     const PALETTE = [
@@ -306,8 +329,8 @@
       { id: 'shadow', name: '그림자', color: '#9a5cf0', rgb: [154, 92, 240], hint: '적을 뚫고 지나가요' },
     ];
     const TIERS = [
-      { name: '일반', color: '#9aa3b5' }, { name: '고급', color: '#5fd068' }, { name: '희귀', color: '#4aa8ff' },
-      { name: '영웅', color: '#b46bff' }, { name: '전설', color: '#ffa733' },
+      { name: 'COMMON', color: '#9aa3b5' }, { name: 'UNCOMMON', color: '#5fd068' }, { name: 'RARE', color: '#4aa8ff' },
+      { name: 'EPIC', color: '#b46bff' }, { name: 'LEGENDARY', color: '#ffa733' },
     ];
     const TIPS = [
       '많이 칠할수록 한 방이 세지고, 연사는 느려져요.',
@@ -329,7 +352,7 @@
     const paletteEl = $('#palette');
     PALETTE.forEach((p, i) => {
       const b = document.createElement('button');
-      b.className = 'crayon' + (i === 0 ? ' active' : '');
+      b.className = 'swatch' + (i === 0 ? ' active' : '');
       b.style.setProperty('--c', p.color);
       b.title = `${p.name} · ${p.hint}`;
       b.setAttribute('aria-label', b.title);
@@ -337,11 +360,11 @@
       paletteEl.appendChild(b);
     });
     function syncTools() {
-      paletteEl.querySelectorAll('.crayon').forEach((s, j) => s.classList.toggle('active', !brush.eraser && j === brush.color));
+      paletteEl.querySelectorAll('.swatch').forEach((s, j) => s.classList.toggle('active', !brush.eraser && j === brush.color));
       $('#eraser').classList.toggle('active', brush.eraser);
       const p = PALETTE[brush.color];
-      $('#crayon-label').textContent = brush.eraser ? '지우개' : `${p.name} — ${p.hint}`;
-      $('#crayon-label').style.color = brush.eraser ? '#e9e2cf' : (p.id === 'ink' ? '#e9e2cf' : p.color);
+      $('#crayon-label').innerHTML = brush.eraser ? '<b>지우개</b> 그린 부분을 지워요'
+        : `<i style="--c:${p.color === '#1d1f24' ? '#7d8597' : p.color}"></i><b>${p.name}</b> ${p.hint}`;
     }
     document.querySelectorAll('[data-size]').forEach(b => b.addEventListener('click', () => {
       brush.size = +b.dataset.size;
@@ -402,39 +425,48 @@
       renderStats(currentStats);
     }
 
-    // 예시 그림
+    // 예시 무기 그림
     let exampleIdx = 0;
     function drawExample() {
       pushUndo();
       pctx.clearRect(0, 0, PAD, PAD);
       const g = pctx;
-      g.lineCap = 'round'; g.lineJoin = 'round';
+      const C = i => PALETTE[i].color;
+      const poly = (pts, color) => { g.fillStyle = color; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); };
+      const rr = (x, y, w, h, r, color) => { g.fillStyle = color; g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); };
+      const line = (pts, color, lw) => { g.strokeStyle = color; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); };
       const k = exampleIdx++ % 3;
-      if (k === 0) { // 먹물 + 불꽃 블래스터
-        g.fillStyle = PALETTE[0].color;
-        g.beginPath(); g.roundRect(80, 150, 190, 60, 14); g.fill();
-        g.beginPath(); g.moveTo(110, 200); g.lineTo(165, 200); g.lineTo(145, 290); g.lineTo(95, 285); g.closePath(); g.fill();
-        g.fillStyle = PALETTE[1].color;
-        g.fillRect(262, 165, 58, 30);
-        g.beginPath(); g.moveTo(320, 160); g.lineTo(350, 180); g.lineTo(320, 200); g.closePath(); g.fill();
-        g.strokeStyle = PALETTE[1].color; g.lineWidth = 8;
-        g.beginPath(); g.moveTo(100, 168); g.lineTo(240, 168); g.stroke();
-      } else if (k === 1) { // 얼음 + 번개 창
-        g.strokeStyle = PALETTE[2].color; g.lineWidth = 14;
-        g.beginPath(); g.moveTo(40, 250); g.lineTo(330, 150); g.stroke();
-        g.fillStyle = PALETTE[2].color;
-        g.beginPath(); g.moveTo(320, 130); g.lineTo(375, 135); g.lineTo(335, 175); g.closePath(); g.fill();
-        g.strokeStyle = PALETTE[3].color; g.lineWidth = 7;
-        g.beginPath(); g.moveTo(80, 220); g.lineTo(130, 190); g.lineTo(150, 215); g.lineTo(210, 172); g.lineTo(230, 192); g.lineTo(290, 152); g.stroke();
-      } else { // 독 + 그림자 산탄 (떨어진 조각 4개)
-        g.fillStyle = PALETTE[4].color;
-        [[120, 110, 40], [250, 120, 34], [170, 260, 46]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
-        g.fillStyle = PALETTE[5].color;
-        g.beginPath(); g.arc(300, 250, 30, 0, Math.PI * 2); g.fill();
-        g.strokeStyle = PALETTE[0].color; g.lineWidth = 5;
-        [[120, 110], [250, 120], [170, 260], [300, 250]].forEach(([x, y]) => {
-          g.beginPath(); g.arc(x - 8, y - 6, 5, 0, Math.PI * 2); g.arc(x + 10, y - 6, 5, 0, Math.PI * 2); g.stroke();
-        });
+      if (k === 0) { // 먹물 + 불꽃: 에너지 블래스터
+        poly([[74, 176], [36, 170], [28, 216], [74, 220]], C(0));                       // 개머리
+        poly([[70, 168], [250, 168], [272, 182], [272, 214], [156, 214], [146, 224], [70, 224]], C(0)); // 몸통
+        rr(96, 152, 128, 14, 4, C(0));                                                    // 레일
+        rr(128, 124, 76, 26, 7, C(0));                                                    // 조준경
+        g.fillStyle = C(1); g.beginPath(); g.arc(204, 137, 9, 0, Math.PI * 2); g.fill();
+        rr(268, 184, 72, 20, 4, C(0));                                                    // 총열
+        rr(334, 178, 18, 32, 4, C(0));                                                    // 총구
+        rr(166, 180, 76, 18, 9, C(1));                                                    // 에너지 코어
+        rr(276, 190, 56, 6, 3, C(1));
+        line([[92, 186], [92, 206]], C(1), 4); line([[104, 186], [104, 206]], C(1), 4); line([[116, 186], [116, 206]], C(1), 4);
+        poly([[108, 214], [152, 214], [140, 294], [98, 294], [92, 282]], C(0));            // 손잡이
+        line([[150, 226], [176, 250], [196, 226]], C(0), 6);                              // 방아쇠울
+      } else if (k === 1) { // 얼음 + 번개: 레일건
+        rr(26, 186, 58, 48, 9, C(0));                                                     // 후미
+        poly([[54, 232], [82, 230], [78, 296], [48, 296]], C(0));                          // 손잡이
+        poly([[78, 190], [346, 158], [350, 168], [82, 202]], C(2));                        // 위 레일
+        poly([[78, 214], [346, 182], [350, 192], [82, 226]], C(2));                        // 아래 레일
+        for (const x of [130, 190, 250, 310]) { const y = 196 - (x - 80) * 0.119; line([[x, y - 10], [x, y + 26]], C(2), 7); }
+        line([[96, 210], [130, 196], [150, 208], [190, 190], [210, 202], [250, 184], [270, 196], [340, 176]], C(3), 5); // 번개
+        rr(36, 196, 30, 10, 4, C(3));
+      } else { // 독 + 그림자: 산탄총 + 떠 있는 독 구슬 3개 (조각 4개 → 4발)
+        poly([[28, 202], [112, 184], [120, 216], [40, 244]], C(5));                       // 개머리
+        rr(108, 178, 96, 44, 8, C(0));                                                    // 몸통
+        rr(200, 182, 112, 15, 5, C(4));                                                   // 총열 2개
+        rr(200, 201, 112, 15, 5, C(4));
+        rr(222, 218, 62, 15, 6, C(0));                                                    // 펌프
+        poly([[132, 220], [164, 220], [154, 266], [126, 262]], C(0));                      // 손잡이
+        rr(124, 188, 60, 8, 4, C(5));
+        g.fillStyle = C(4);
+        for (const [x, y, r] of [[350, 150, 15], [366, 200, 13], [350, 252, 15]]) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
       }
       analyzeNow();
     }
@@ -551,14 +583,14 @@
       $('#pad-hint').classList.toggle('hidden', st.ink > 0);
       $('#forge').disabled = !st.valid;
       const card = $('#item-card');
-      thumbCtx.clearRect(0, 0, 184, 184);
+      thumbCtx.clearRect(0, 0, 152, 152);
       if (!st.valid) {
-        card.style.setProperty('--tc', '#4a5368');
-        $('#w-tier').textContent = '—';
+        card.style.setProperty('--tc', '#5c6473');
+        $('#w-tier').textContent = 'EMPTY';
         $('#w-kind').textContent = '';
-        $('#w-name').textContent = st.ink > 0 ? '조금만 더!' : '빈 종이';
+        $('#w-name').textContent = st.ink > 0 ? '조금만 더 그려주세요' : '빈 캔버스';
         $('#w-type').textContent = st.ink > 0 ? '무기가 되기엔 잉크가 부족해요' : '그리는 순간 무기가 돼요';
-        $('#w-stats').innerHTML = '<div class="empty-note">왼쪽 종이에 그려보세요 ✎</div>';
+        $('#w-stats').innerHTML = '<div class="empty-note">캔버스에 그림을 그리면<br>능력치가 바로 계산돼요</div>';
         $('#w-effects').innerHTML = '';
         return;
       }
@@ -568,21 +600,20 @@
       $('#w-kind').textContent = st.pieces > 1 ? `산탄 ${st.pieces}발` : '단발';
       $('#w-name').textContent = st.name;
       $('#w-type').textContent = `잉크 ${(st.ink / (PAD * PAD) * 100).toFixed(1)}% · 조각 ${st.pieces}개`;
-      const { x, y, w, h } = st.bbox, s = 150 / Math.max(w, h);
-      thumbCtx.drawImage(pad, x, y, w, h, 92 - w * s / 2, 92 - h * s / 2, w * s, h * s);
+      const art = stylize(cropFromPad(st).crop, glowColorFor(st)).canvas;
+      const ts = 128 / Math.max(art.width, art.height);
+      thumbCtx.drawImage(art, 76 - art.width * ts / 2, 76 - art.height * ts / 2, art.width * ts, art.height * ts);
 
       const rows = [
         ['피해량', st.perPellet * st.pieces / 100, st.pieces > 1 ? `${st.perPellet.toFixed(0)}×${st.pieces}` : st.perPellet.toFixed(0)],
-        ['연사', st.fireRate / 7, `${st.fireRate.toFixed(1)}/초`],
+        ['연사', st.fireRate / 7, `${st.fireRate.toFixed(1)}/s`],
         ['탄속', st.speed / 25, st.speed.toFixed(0)],
         ['탄 크기', st.radius / 0.32, `${(st.radius * 100).toFixed(0)}`],
-        ['탄창', st.mag / 22, `${st.mag}발`],
-        ['재장전', 1 - (st.reload - 0.7) / 1.3, `${st.reload.toFixed(1)}초`],
+        ['탄창', st.mag / 22, `${st.mag}`],
+        ['재장전', 1 - (st.reload - 0.7) / 1.3, `${st.reload.toFixed(1)}s`],
       ];
-      $('#w-stats').innerHTML = rows.map(([k, v, t]) => {
-        const on = Math.max(1, Math.round(clamp(v, 0, 1) * 10));
-        return `<div class="stat"><span>${k}</span><div class="segs">${'<i class="on"></i>'.repeat(on)}${'<i></i>'.repeat(10 - on)}</div><b>${t}</b></div>`;
-      }).join('');
+      $('#w-stats').innerHTML = rows.map(([k, v, t]) =>
+        `<div class="stat"><span>${k}</span><div class="bar"><i style="width:${clamp(v, 0.05, 1) * 100}%"></i></div><b>${t}</b></div>`).join('');
       const fx = st.fx, list = [];
       if (st.share.ink) list.push(['ink', '먹물', `피해 +${Math.round(fx.ink * 60)}%`]);
       if (st.share.fire) list.push(['fire', '화상', `${fx.burn.toFixed(0)}/초`]);
@@ -590,8 +621,10 @@
       if (st.share.bolt) list.push(['bolt', '연쇄', `${Math.round(fx.chain * 100)}%`]);
       if (st.share.toxic) list.push(['toxic', '독 폭발', `반경 ${fx.splash.toFixed(1)}`]);
       if (st.share.shadow) list.push(['shadow', '관통', `${fx.pierce}회`]);
-      $('#w-effects').innerHTML = list.map(([id, n, v]) =>
-        `<span class="fx" style="--c:${PALETTE.find(p => p.id === id).color}"><i></i><b>${n}</b>${v}</span>`).join('');
+      $('#w-effects').innerHTML = list.map(([id, n, v]) => {
+        const c = id === 'ink' ? '#9aa3b5' : PALETTE.find(p => p.id === id).color;
+        return `<span class="fx" style="--c:${c}"><i></i><b>${n}</b>${v}</span>`;
+      }).join('');
     }
 
     let tipIdx = 0;
@@ -599,46 +632,107 @@
     nextTip();
     setInterval(() => { if (state === 'workshop') nextTip(); }, 5000);
 
-    // 분석 결과로 실제 무기(손에 든 그림 + 탄 그림) 만들기
-    function forgeWeapon(st) {
-      const P = 7;
+    // ───────────────────────── 그림 → 실제 무기 모델 ─────────────────────────
+    function blankLike(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+    function maskFill(src, color) {
+      const c = blankLike(src.width, src.height), g = c.getContext('2d');
+      g.drawImage(src, 0, 0);
+      g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+      return c;
+    }
+    function cropFromPad(st) {
       const { x, y, w, h } = st.bbox;
       const sx = Math.max(0, x - 2), sy = Math.max(0, y - 2);
       const sw = Math.min(PAD, x + w + 2) - sx, sh = Math.min(PAD, y + h + 2) - sy;
-      const crop = document.createElement('canvas');
-      crop.width = sw; crop.height = sh;
+      const crop = blankLike(sw, sh);
       crop.getContext('2d').drawImage(pad, sx, sy, sw, sh, 0, 0, sw, sh);
-
-      const sticker = document.createElement('canvas');
-      sticker.width = crop.width + P * 2; sticker.height = crop.height + P * 2;
-      const sg = sticker.getContext('2d');
-      for (let i = 0; i < 16; i++) {
-        const a = i / 16 * Math.PI * 2;
-        sg.drawImage(crop, P + Math.cos(a) * 5, P + Math.sin(a) * 5);
+      return { crop, sx, sy };
+    }
+    // 그림을 게임 아이템처럼: 진한 외곽선 + 위는 밝고 아래는 어두운 음영 + 가장자리 하이라이트 + 속성 빛
+    function stylize(crop, glow) {
+      const P = 8, w = crop.width, h = crop.height;
+      const out = blankLike(w + P * 2, h + P * 2), g = out.getContext('2d');
+      const dark = maskFill(crop, '#07090d');
+      if (glow) {
+        g.save(); g.shadowColor = glow; g.shadowBlur = 14; g.globalAlpha = 0.6;
+        g.drawImage(dark, P, P); g.restore();
       }
-      sg.globalCompositeOperation = 'source-in';
-      sg.fillStyle = '#fbf8f1'; sg.fillRect(0, 0, sticker.width, sticker.height);
-      sg.globalCompositeOperation = 'source-over';
-      sg.drawImage(crop, P, P);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.drawImage(dark, P + Math.cos(a) * 3, P + Math.sin(a) * 3); }
 
-      const color = PALETTE[st.dominant].color;
+      const body = blankLike(w, h), bg = body.getContext('2d');
+      bg.drawImage(crop, 0, 0);
+      bg.globalCompositeOperation = 'source-atop';
+      const lg = bg.createLinearGradient(0, 0, 0, h);
+      lg.addColorStop(0, 'rgba(255,255,255,.3)'); lg.addColorStop(.42, 'rgba(255,255,255,.04)');
+      lg.addColorStop(.58, 'rgba(0,0,0,.04)'); lg.addColorStop(1, 'rgba(0,0,0,.42)');
+      bg.fillStyle = lg; bg.fillRect(0, 0, w, h);
+      const edge = (dy, color) => {
+        const e = blankLike(w, h), eg = e.getContext('2d');
+        eg.drawImage(crop, 0, 0);
+        eg.globalCompositeOperation = 'destination-out'; eg.drawImage(crop, 0, dy);
+        eg.globalCompositeOperation = 'source-in'; eg.fillStyle = color; eg.fillRect(0, 0, w, h);
+        return e;
+      };
+      bg.drawImage(edge(3, 'rgba(255,255,255,.55)'), 0, 0);
+      bg.drawImage(edge(-4, 'rgba(0,0,0,.5)'), 0, 0);
+      g.drawImage(body, P, P);
+      return { canvas: out, P };
+    }
+    // 1인칭 시점용: 총구 쪽이 멀어지며 작아지는 원근 + 아래로 두께
+    function buildViewModel(src, muzzle) {
+      const W = src.width, H = src.height, FAR = 0.52, DEPTH = 9, RISE = H * 0.32 + 20;
+      const L = W * (1 + FAR) / 2;
+      const c = blankLike(L + 4, H + RISE + DEPTH + 8), g = c.getContext('2d');
+      const Xg = L + 2, Yc = RISE + H / 2 + 4;
+      const f = x => 1 - (1 - FAR) * (x / W);
+      const dx = x => Xg - (x - (1 - FAR) * x * x / (2 * W));
+      const cy = x => Yc - (1 - f(x)) * RISE;
+      const side = blankLike(W, H), sg = side.getContext('2d');
+      sg.drawImage(maskFill(src, '#07090d'), 0, 0);
+      sg.globalAlpha = 0.55; sg.drawImage(src, 0, 0);
+      const slices = (img, yOff) => {
+        for (let x = 0; x < W; x++) {
+          const k = f(x + 0.5), X = dx(x + 1);
+          g.drawImage(img, x, 0, 1, H, X, cy(x + 0.5) - H / 2 * k + yOff * k, dx(x) - X + 0.6, H * k);
+        }
+      };
+      for (let d = DEPTH; d >= 1; d--) slices(side, d);
+      slices(src, 0);
+      const mk = f(muzzle.x);
+      // 그림자를 미리 구워 둠 (매 프레임 shadowBlur는 느림)
+      const PADS = 36, out = blankLike(c.width + PADS * 2, c.height + PADS * 2), og = out.getContext('2d');
+      og.shadowColor = 'rgba(0,0,0,.55)'; og.shadowBlur = 22; og.shadowOffsetY = 8;
+      og.drawImage(c, PADS, PADS);
+      return {
+        canvas: out,
+        grip: { x: PADS + Xg - W * 0.08, y: PADS + Yc + H * 0.12 },
+        muzzle: { x: PADS + dx(muzzle.x), y: PADS + cy(muzzle.x) + (muzzle.y - H / 2) * mk },
+      };
+    }
+    function glowColorFor(st) {
+      let best = null, bs = 0;
+      for (const p of PALETTE) if (p.id !== 'ink' && st.share[p.id] > bs) { bs = st.share[p.id]; best = p.color; }
+      return best;
+    }
+    function forgeWeapon(st) {
+      const { crop, sx, sy } = cropFromPad(st);
+      const sty = stylize(crop, glowColorFor(st));
+      const art = sty.canvas;
+      const muzzleLocal = { x: sty.P + st.muzzle.x - sx, y: sty.P + st.muzzle.y - sy };
+      const model = buildViewModel(art, muzzleLocal);
+      const color = glowColorFor(st) || '#c9ced8';
       const frames = [];
       for (let i = 0; i < 8; i++) {
-        const f = document.createElement('canvas'); f.width = f.height = 96;
-        const g = f.getContext('2d');
+        const fr = blankLike(96, 96), g = fr.getContext('2d');
         const halo = g.createRadialGradient(48, 48, 4, 48, 48, 48);
-        halo.addColorStop(0, color + 'aa'); halo.addColorStop(1, color + '00');
+        halo.addColorStop(0, color + '99'); halo.addColorStop(1, color + '00');
         g.fillStyle = halo; g.fillRect(0, 0, 96, 96);
-        const s = 66 / Math.max(sticker.width, sticker.height);
+        const s = 70 / Math.max(art.width, art.height);
         g.translate(48, 48); g.rotate(i * Math.PI / 4); g.scale(s, s);
-        g.drawImage(sticker, -sticker.width / 2, -sticker.height / 2);
-        frames.push(f);
+        g.drawImage(art, -art.width / 2, -art.height / 2);
+        frames.push(fr);
       }
-      return {
-        ...st, sticker, frames, color,
-        padData: pctx.getImageData(0, 0, PAD, PAD),
-        muzzleLocal: { x: P + st.muzzle.x - sx, y: P + st.muzzle.y - sy },
-      };
+      return { ...st, sticker: art, frames, color, model, padData: pctx.getImageData(0, 0, PAD, PAD) };
     }
 
     // ───────────────────────── 맵 & 텍스처 ─────────────────────────
@@ -681,44 +775,139 @@
       g.quadraticCurveTo((x1 + x2) / 2 + (r() - .5) * amp * 2, (y1 + y2) / 2 + (r() - .5) * amp * 2, x2 + (r() - .5) * amp, y2 + (r() - .5) * amp);
       g.stroke();
     }
-    const TEX = 64;
-    function makeTexture(kind, variant) {
-      const c = document.createElement('canvas'); c.width = c.height = TEX;
-      const g = c.getContext('2d'); const r = seeded(kind.charCodeAt(0) * 100 + variant * 7 + 1);
-      g.lineCap = 'round';
-      if (kind === '#') {
-        g.fillStyle = '#e6dcc6'; g.fillRect(0, 0, TEX, TEX);
-        for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(110,90,60,${r() * 0.1})`; g.fillRect(r() * TEX, r() * TEX, 1.5, 1.5); }
-        g.strokeStyle = '#a3957b'; g.lineWidth = 1.6;
-        for (let row = 0; row < 4; row++) {
-          const y = row * 16;
-          sketch(g, r, 0, y + 1, TEX, y + 1);
-          const off = row % 2 ? 0 : 16;
-          for (let x = off; x <= TEX; x += 32) sketch(g, r, x, y + 1, x, y + 16, 1);
-        }
-        g.strokeStyle = '#6e6a63'; g.lineWidth = 1.3;
-        if (variant === 1) { g.beginPath(); g.arc(42, 26, 7, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#6e6a63'; g.fillRect(39, 23, 1.6, 2); g.fillRect(44, 23, 1.6, 2); g.beginPath(); g.arc(42, 27, 4, 0.2, Math.PI - 0.2); g.stroke(); }
-        if (variant === 2) { g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 4 / 5; g.lineTo(20 + Math.cos(a) * 8, 42 + Math.sin(a) * 8); } g.closePath(); g.stroke(); }
-      } else if (kind === '%') {
-        g.fillStyle = '#c49a6c'; g.fillRect(0, 0, TEX, TEX);
-        for (let x = 0; x < TEX; x += 4) { g.fillStyle = `rgba(90,60,30,${0.06 + r() * 0.05})`; g.fillRect(x, 0, 2, TEX); }
-        g.fillStyle = 'rgba(232,220,180,.75)'; g.fillRect(0, 26 + variant * 3, TEX, 11);
-        g.strokeStyle = '#7a5532'; g.lineWidth = 1.5;
-        sketch(g, r, 6, 52, 22, 46); sketch(g, r, 22, 46, 30, 56);
-      } else {
-        g.fillStyle = '#2f4a3f'; g.fillRect(0, 0, TEX, TEX);
-        for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(255,255,255,${r() * 0.05})`; g.fillRect(r() * TEX, r() * TEX, 2, 2); }
-        g.strokeStyle = 'rgba(240,240,230,.55)'; g.lineWidth = 1.4;
-        if (variant === 0) { sketch(g, r, 10, 20, 30, 20); sketch(g, r, 20, 10, 20, 30); sketch(g, r, 36, 40, 54, 40); }
-        else if (variant === 1) { g.beginPath(); g.arc(32, 32, 12, 0, Math.PI * 2); g.stroke(); sketch(g, r, 20, 32, 44, 32); }
-        else { sketch(g, r, 8, 48, 24, 16); sketch(g, r, 24, 16, 40, 48); sketch(g, r, 14, 36, 34, 36); }
-        g.fillStyle = '#5a4630'; g.fillRect(0, TEX - 5, TEX, 5);
+    function noisePass(c, amt, seed) {
+      const g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height), r = seeded(seed);
+      for (let i = 0; i < d.data.length; i += 4) {
+        const n = (r() - .5) * amt;
+        d.data[i] += n; d.data[i + 1] += n; d.data[i + 2] += n;
       }
-      g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(0, 0, 1.5, TEX);
+      g.putImageData(d, 0, 0);
+    }
+    function softSpot(g, x, y, rad, color) {
+      const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+      gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    }
+
+    // 안개(거리감) — 멀수록 이 색으로 섞인다
+    const FOG = [12, 16, 26], FOG_CSS = 'rgb(12,16,26)';
+    const fogF = d => Math.max(0, Math.min(1, 1.12 - d / 12.5));
+
+    const TEX = 128;
+    function makeTexture(kind, variant) {
+      const T = TEX, c = document.createElement('canvas'); c.width = c.height = T;
+      const g = c.getContext('2d'), r = seeded(kind.charCodeAt(0) * 131 + variant * 17 + 3);
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      if (kind === '#') { // 회벽 벽돌 + 연필 낙서
+        g.fillStyle = '#867b67'; g.fillRect(0, 0, T, T);
+        const BH = 32, BW = 64, M = 3;
+        for (let row = 0; row < 4; row++) {
+          for (let bx = row % 2 ? -32 : 0; bx < T; bx += BW) {
+            const x = bx + M / 2, y = row * BH + M / 2, w = BW - M, h = BH - M, t = (r() - .5) * 20;
+            g.fillStyle = `rgb(${214 + t},${203 + t},${181 + t})`; g.fillRect(x, y, w, h);
+            g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x, y, w, 2); g.fillRect(x, y, 2, h);
+            g.fillStyle = 'rgba(60,45,25,.25)'; g.fillRect(x, y + h - 3, w, 3); g.fillRect(x + w - 2, y, 2, h);
+            if (r() < .4) softSpot(g, x + r() * w, y + r() * h, 10 + r() * 14, 'rgba(110,90,60,.16)');
+          }
+        }
+        g.strokeStyle = 'rgba(48,46,44,.72)'; g.lineWidth = 2.2;
+        if (variant === 1) {
+          g.beginPath(); g.arc(84, 48, 13, 0, Math.PI * 2); g.stroke();
+          g.beginPath(); g.arc(84, 50, 7, 0.25, Math.PI - 0.25); g.stroke();
+          g.fillStyle = 'rgba(48,46,44,.8)'; g.fillRect(79, 42, 2.5, 3.5); g.fillRect(87, 42, 2.5, 3.5);
+        } else if (variant === 2) {
+          g.beginPath();
+          for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 4 / 5; g.lineTo(38 + Math.cos(a) * 14, 82 + Math.sin(a) * 14); }
+          g.stroke();
+          sketch(g, r, 70, 100, 104, 92, 2); sketch(g, r, 96, 86, 104, 92, 1); sketch(g, r, 96, 99, 104, 92, 1);
+        }
+        noisePass(c, 18, variant + 11);
+      } else if (kind === '%') { // 골판지 상자
+        g.fillStyle = '#b8895a'; g.fillRect(0, 0, T, T);
+        for (let x = 0; x < T; x += 6) { g.fillStyle = `rgba(80,48,18,${0.05 + r() * 0.05})`; g.fillRect(x, 0, 3, T); }
+        const eg = g.createLinearGradient(0, 0, 0, T);
+        eg.addColorStop(0, 'rgba(60,35,10,.35)'); eg.addColorStop(.08, 'rgba(0,0,0,0)'); eg.addColorStop(.92, 'rgba(0,0,0,0)'); eg.addColorStop(1, 'rgba(60,35,10,.4)');
+        g.fillStyle = eg; g.fillRect(0, 0, T, T);
+        const ty = 48 + variant * 6;
+        g.fillStyle = 'rgba(224,210,168,.88)'; g.fillRect(0, ty, T, 22);
+        g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(0, ty + 2, T, 2);
+        g.fillStyle = 'rgba(90,70,30,.18)'; g.fillRect(0, ty + 20, T, 2);
+        g.strokeStyle = 'rgba(55,32,14,.75)'; g.lineWidth = 4;
+        if (variant !== 1) {
+          for (const ox of [16, 36]) { sketch(g, r, ox, 116, ox, 94, 1.5); sketch(g, r, ox - 7, 101, ox, 93, 1); sketch(g, r, ox + 7, 101, ox, 93, 1); }
+        } else { g.lineWidth = 3; g.strokeRect(86, 92, 26, 22); sketch(g, r, 86, 92, 112, 114, 1); }
+        noisePass(c, 16, variant + 23);
+      } else { // 칠판
+        g.fillStyle = '#22362f'; g.fillRect(0, 0, T, T);
+        for (let i = 0; i < 6; i++) softSpot(g, r() * T, 14 + r() * (T - 40), 18 + r() * 22, 'rgba(255,255,255,.05)');
+        g.strokeStyle = 'rgba(236,236,226,.66)'; g.lineWidth = 2.4;
+        if (variant === 0) { sketch(g, r, 20, 40, 52, 40); sketch(g, r, 36, 24, 36, 56); sketch(g, r, 66, 40, 100, 40); sketch(g, r, 66, 48, 100, 48); }
+        else if (variant === 1) { g.beginPath(); g.arc(64, 54, 22, 0, Math.PI * 2); g.stroke(); sketch(g, r, 42, 54, 86, 54); sketch(g, r, 64, 32, 64, 76); }
+        else { sketch(g, r, 24, 84, 50, 26); sketch(g, r, 50, 26, 76, 84); sketch(g, r, 32, 64, 68, 64); sketch(g, r, 88, 40, 108, 74, 2); }
+        g.fillStyle = '#6b4a2b'; g.fillRect(0, 0, T, 9);
+        g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, 1, T, 1);
+        g.fillStyle = '#5a3c22'; g.fillRect(0, T - 14, T, 14);
+        g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(0, T - 14, T, 2);
+        g.fillStyle = '#eceade'; g.fillRect(28 + variant * 18, T - 12, 14, 4);
+        noisePass(c, 10, variant + 37);
+      }
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, 0, 2, T);
       return c;
     }
     const textures = {};
     for (const k of ['#', '%', '@']) textures[k] = [0, 1, 2].map(v => makeTexture(k, v));
+
+    // 바닥 텍스처 (콘크리트 타일) — 픽셀 단위로 직접 그리기 위해 채널 배열로 보관
+    const FT = 128;
+    const floorTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = FT;
+      const g = c.getContext('2d'), r = seeded(77);
+      g.fillStyle = '#56585c'; g.fillRect(0, 0, FT, FT);
+      for (let i = 0; i < 10; i++) softSpot(g, r() * FT, r() * FT, 12 + r() * 26, `rgba(${r() < .5 ? '0,0,0' : '255,255,255'},.06)`);
+      g.fillStyle = 'rgba(22,24,28,.75)';
+      for (const p of [0, 64]) { g.fillRect(p, 0, 2, FT); g.fillRect(0, p, FT, 2); }
+      g.fillStyle = 'rgba(255,255,255,.06)';
+      for (const p of [2, 66]) { g.fillRect(p, 0, 1, FT); g.fillRect(0, p, FT, 1); }
+      g.strokeStyle = 'rgba(25,25,28,.4)'; g.lineWidth = 1;
+      sketch(g, r, 80, 90, 104, 110, 3); sketch(g, r, 104, 110, 112, 124, 2);
+      softSpot(g, 30, 96, 7, 'rgba(15,15,20,.35)');
+      noisePass(c, 22, 5);
+      const d = g.getImageData(0, 0, FT, FT).data;
+      const R = new Uint8Array(FT * FT), G = new Uint8Array(FT * FT), B = new Uint8Array(FT * FT);
+      for (let i = 0; i < FT * FT; i++) { R[i] = d[i * 4]; G[i] = d[i * 4 + 1]; B[i] = d[i * 4 + 2]; }
+      return { R, G, B };
+    })();
+
+    // 하늘 파노라마 (해 질 녘 + 별 + 언덕 실루엣), 좌우가 이어지게 그림
+    const SKY_W = 2048, SKY_H = 512;
+    // 별과 달은 늘어나 보이지 않게 매 프레임 점으로 그림 (방향각, 높이 비율, 밝기)
+    const STARS = (() => { const r = seeded(4242), list = [];
+      for (let i = 0; i < 360; i++) { const e = r(); list.push([r() * Math.PI * 2, e * e * 0.7 + 0.02, 0.25 + r() * 0.75, r() < 0.1 ? 2 : 1.2]); }
+      return list; })();
+    const MOON = [Math.PI * 1.4, 0.32];
+    const skyCanvas = (() => {
+      const c = document.createElement('canvas'); c.width = SKY_W; c.height = SKY_H;
+      const g = c.getContext('2d'), r = seeded(99);
+      const gr = g.createLinearGradient(0, 0, 0, SKY_H);
+      gr.addColorStop(0, '#05080f'); gr.addColorStop(.42, '#10182b'); gr.addColorStop(.74, '#272c45');
+      gr.addColorStop(.9, '#4f4258'); gr.addColorStop(1, '#6e5455');
+      g.fillStyle = gr; g.fillRect(0, 0, SKY_W, SKY_H);
+      for (let i = 0; i < 46; i++) {
+        const x = r() * SKY_W, y = SKY_H * (0.5 + r() * 0.3), rad = 60 + r() * 120;
+        for (const ox of [-SKY_W, 0, SKY_W]) softSpot(g, x + ox, y, rad, 'rgba(150,140,180,.05)');
+      }
+      const hills = (base, amps, color) => {
+        g.fillStyle = color; g.beginPath(); g.moveTo(0, SKY_H);
+        for (let x = 0; x <= SKY_W; x += 8) {
+          const t = x / SKY_W * Math.PI * 2;
+          g.lineTo(x, SKY_H - base - amps[0] * Math.sin(t * 3 + 1) - amps[1] * Math.sin(t * 7 + 2) - amps[2] * Math.sin(t * 17));
+        }
+        g.lineTo(SKY_W, SKY_H); g.closePath(); g.fill();
+      };
+      hills(46, [18, 12, 5], '#1d2133');
+      hills(20, [10, 8, 4], '#10131e');
+      return c;
+    })();
 
     // ───────────────────────── 낙서 괴물 ─────────────────────────
     const ENEMY_TYPES = {
@@ -775,7 +964,17 @@
       return c;
     }
     const enemySprites = {};
-    for (const t in ENEMY_TYPES) enemySprites[t] = { walk: [makeEnemyFrame(t, 0), makeEnemyFrame(t, 1)], flash: makeEnemyFrame(t, 0, true) };
+    function fogged(src, a) {
+      if (!a) return src;
+      const c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+      const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+      g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(${FOG.join(',')},${a})`; g.fillRect(0, 0, c.width, c.height);
+      return c;
+    }
+    for (const t in ENEMY_TYPES) enemySprites[t] = {
+      walk: [0, 1].map(f => { const base = makeEnemyFrame(t, f); return [0, 0.25, 0.5, 0.75].map(a => fogged(base, a)); }),
+      flash: makeEnemyFrame(t, 0, true),
+    };
     const spitSprite = (() => {
       const c = document.createElement('canvas'); c.width = c.height = 32;
       const g = c.getContext('2d');
@@ -841,14 +1040,15 @@
       try { const p = canvas.requestPointerLock?.(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* 무시 */ }
     }
     function show(id, on) { $(id).classList.toggle('hidden', !on); }
+    const hoverTick = () => tone(900, 900, 0.02, 'triangle', 0.012);
 
-    // 타이틀 배경: 괴물들이 서 있는 전장을 천천히 둘러보기
     function makeEnemy(type, x, y) {
       const T = ENEMY_TYPES[type];
       const hpMul = 1 + 0.15 * Math.max(0, wave - 1);
       return { type, T, x, y, hp: T.hp * hpMul, maxHp: T.hp * hpMul, t: Math.random() * 3,
         flash: 0, burnT: 0, burnDps: 0, slowT: 0, slowF: 0, atkCd: 0.6, shootCd: rand(1.5, 3), fxT: 0, dead: false };
     }
+    // 타이틀 배경: 괴물들이 서 있는 전장을 천천히 둘러보기
     function goTitle() {
       state = 'title'; firing = false; hadLock = false;
       if (document.pointerLockElement) document.exitPointerLock();
@@ -861,6 +1061,8 @@
       show('#title', true); show('#menu', false); show('#workshop', false); show('#hud', false);
     }
     $('#start-btn').addEventListener('click', () => { sfx.click(); openWorkshop(false); });
+    $('#controls-btn').addEventListener('click', () => { sfx.click(); $('#title-controls').classList.toggle('hidden'); });
+    document.querySelectorAll('#title .menu-item').forEach(b => b.addEventListener('mouseenter', hoverTick));
 
     function openWorkshop(fromGame) {
       workshopFromGame = fromGame;
@@ -868,8 +1070,10 @@
       firing = false;
       if (document.pointerLockElement) document.exitPointerLock();
       show('#workshop', true); show('#title', false); show('#menu', false); show('#hud', false);
-      $('#ws-status').textContent = fromGame ? `웨이브 ${wave} · 일시정지 중` : `최고 기록 ${best}`;
-      $('#forge').innerHTML = `<span>${fromGame ? '무기 교체!' : '출격!'}</span>`;
+      $('#ws-status').innerHTML = fromGame
+        ? `<span class="lbl">WAVE ${wave} · PAUSED</span><b>${score}</b>`
+        : `<span class="lbl">BEST SCORE</span><b>${best}</b>`;
+      $('#forge-label').textContent = fromGame ? '무기 교체' : '출격';
       nextTip();
       analyzeNow();
     }
@@ -877,7 +1081,7 @@
       if (!currentStats || !currentStats.valid) return;
       weapon = forgeWeapon(currentStats);
       setupWeaponHud();
-      if (workshopFromGame) { ammo = weapon.mag; reloadT = 0; resume(); showBanner('무기 교체!', weapon.name, 2); }
+      if (workshopFromGame) { ammo = weapon.mag; reloadT = 0; resume(); showBanner('NEW WEAPON', '무기 교체', weapon.name, 2); }
       else startGame();
     }
     $('#forge').addEventListener('click', forge);
@@ -893,7 +1097,7 @@
     function setupWeaponHud() {
       const c = $('#weapon-thumb'), g = c.getContext('2d'), img = weapon.sticker;
       g.clearRect(0, 0, c.width, c.height);
-      const s = Math.min(c.width / img.width, c.height / img.height) * 0.92;
+      const s = Math.min(c.width / img.width, c.height / img.height) * 0.95;
       g.drawImage(img, (c.width - img.width * s) / 2, (c.height - img.height * s) / 2, img.width * s, img.height * s);
       $('#ammo-pips').innerHTML = '<i></i>'.repeat(weapon.mag);
       for (const k in hudCache) delete hudCache[k];
@@ -922,7 +1126,7 @@
       if (state !== 'playing') return;
       state = 'paused'; firing = false; hadLock = false; pausedAt = performance.now();
       if (document.pointerLockElement) document.exitPointerLock();
-      showMenu('일시정지', false, '', [
+      showMenu('Paused', '일시정지', false, '', [
         ['계속하기', resume],
         ['무기 다시 그리기', () => openWorkshop(true)],
         ['타이틀로', goTitle],
@@ -933,33 +1137,38 @@
       if (document.pointerLockElement) document.exitPointerLock();
       const isBest = score > best;
       if (isBest) { best = score; try { localStorage.setItem('doodle-fps-best', best); } catch (e) { /* 무시 */ } }
-      const extra = (isBest && score > 0 ? '<div class="new-best">최고 기록 갱신!</div>' : '') +
-        `<div class="menu-stats"><div><small>도달 웨이브</small><b>${wave}</b></div><div><small>처치</small><b>${kills}</b></div>` +
-        `<div><small>점수</small><b>${score}</b></div><div><small>최고 기록</small><b>${best}</b></div></div>`;
-      showMenu('전멸!', true, extra, [
+      const extra = (isBest && score > 0 ? '<div class="new-best">최고 기록 갱신</div>' : '') +
+        `<div class="menu-stats"><div><span class="lbl">WAVE</span><b>${wave}</b></div><div><span class="lbl">KILLS</span><b>${kills}</b></div>` +
+        `<div><span class="lbl">SCORE</span><b>${score}</b></div><div><span class="lbl">BEST</span><b>${best}</b></div></div>`;
+      showMenu('Mission Failed', '전멸', true, extra, [
         ['같은 무기로 다시', startGame],
         ['무기 다시 그리기', () => openWorkshop(false)],
         ['타이틀로', goTitle],
       ]);
     }
-    function showMenu(title, lose, extraHtml, items) {
+    function showMenu(eyebrow, title, lose, extraHtml, items) {
+      $('#menu-eyebrow').textContent = eyebrow;
       $('#menu-title').textContent = title;
       $('#menu').classList.toggle('lose', lose);
       $('#menu-extra').innerHTML = extraHtml;
       const list = $('#menu-list');
       list.innerHTML = '';
-      for (const [label, fn] of items) {
+      items.forEach(([label, fn], i) => {
         const b = document.createElement('button');
-        b.className = 'menu-item'; b.textContent = label;
+        b.className = 'menu-item';
+        b.innerHTML = `<span class="idx">0${i + 1}</span>${label}`;
         b.addEventListener('click', () => { sfx.click(); fn(); });
-        b.addEventListener('mouseenter', () => tone(900, 900, 0.02, 'triangle', 0.015));
+        b.addEventListener('mouseenter', hoverTick);
         list.appendChild(b);
-      }
+      });
       show('#menu', true); show('#hud', false);
     }
-    function showBanner(title, text, secs = 2.5) {
-      $('#banner-title').textContent = title; $('#banner-text').textContent = text;
+    function showBanner(eyebrow, title, text, secs = 2.5, good = false) {
+      $('#banner-eyebrow').textContent = eyebrow;
+      $('#banner-title').textContent = title;
+      $('#banner-text').textContent = text;
       const b = $('#banner');
+      b.classList.toggle('good', good);
       b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
       bannerT = secs;
     }
@@ -969,7 +1178,7 @@
       const feed = $('#killfeed');
       const el = document.createElement('div');
       el.className = 'kf';
-      el.innerHTML = `${text}<em>+${pts}</em>`;
+      el.innerHTML = `<span>${text}</span><em>+${pts}</em>`;
       feed.prepend(el);
       while (feed.children.length > 5) feed.lastChild.remove();
       setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2400);
@@ -987,7 +1196,7 @@
       waveTotal = total;
       maxAlive = 5 + n;
       spawnTimer = 1;
-      showBanner(`웨이브 ${n}`, n === 1 ? '낙서 괴물들이 몰려온다!' : `괴물 ${total}마리 접근 중`, 2.2);
+      showBanner('Incoming', `WAVE ${n}`, n === 1 ? '낙서 괴물들이 몰려옵니다' : `낙서 괴물 ${total}마리 접근 중`, 2.4);
       sfx.wave();
     }
     function waveClear() {
@@ -995,7 +1204,7 @@
       const bonus = wave * 50;
       score += bonus; updateScore();
       player.hp = Math.min(player.maxHp, player.hp + 25);
-      showBanner('웨이브 클리어!', `+${bonus}점 · 체력 +25 · Q로 무기 교체`, 4);
+      showBanner('Survived', 'WAVE CLEAR', `+${bonus}점 · 체력 +25 · Q 무기 교체`, 4, true);
     }
     function spawnEnemy(type) {
       const cand = OPEN.filter(([x, y]) => flow[y * MW + x] >= 8);
@@ -1261,7 +1470,7 @@
     function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
     function setCache(key, v, fn) { if (hudCache[key] !== v) { hudCache[key] = v; fn(v); } }
     function updateHud() {
-      setText('#wave-label', `웨이브 ${wave}`);
+      setText('#wave-label', `WAVE ${wave}`);
       const left = enemies.length + spawnQueue.length;
       setText('#enemy-label', intermission > 0 ? `다음 웨이브까지 ${Math.ceil(intermission)}초` : `남은 적 ${left}`);
       setCache('enemyW', intermission > 0 ? 0 : left / waveTotal, v => { $('#enemy-fill').style.width = `${v * 100}%`; });
@@ -1283,7 +1492,71 @@
     }
 
     // ───────────────────────── 그리기 ─────────────────────────
-    let view = null;
+    let view = null, swayX = 0, turnImpulse = 0, vignette = null;
+    const floorCan = document.createElement('canvas'), floorCtx = floorCan.getContext('2d');
+    let floorImg = null, floor32 = null;
+    const FS = 2; // 바닥은 절반 해상도로 계산해서 늘려 그림
+
+    function makeVignette(w, h) {
+      const c = document.createElement('canvas'); c.width = Math.ceil(w / 2); c.height = Math.ceil(h / 2);
+      const g = c.getContext('2d');
+      const gr = g.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * 0.3, c.width / 2, c.height / 2, Math.hypot(c.width, c.height) / 2);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.62)');
+      g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+      return c;
+    }
+    function drawSky(w, horizon, planeLen) {
+      const fov = 2 * Math.atan(planeLen);
+      const skyW = w * Math.PI * 2 / fov;
+      let off = (-(player.a / (Math.PI * 2)) * skyW) % skyW;
+      if (off > 0) off -= skyW;
+      for (let x = off; x < w; x += skyW) ctx.drawImage(skyCanvas, x, 0, skyW + 1, horizon + 1);
+      const toX = ang => { let d = ang - player.a; d = Math.atan2(Math.sin(d), Math.cos(d)); return Math.abs(d) < fov ? w / 2 + Math.tan(d) / planeLen * w / 2 : null; };
+      ctx.fillStyle = '#fff';
+      for (const [ang, el, br, sz] of STARS) {
+        const x = toX(ang); if (x === null || x < 0 || x > w) continue;
+        ctx.globalAlpha = br * (1 - el * 0.6); ctx.fillRect(x, el * horizon * 0.85, sz, sz);
+      }
+      ctx.globalAlpha = 1;
+      const mx = toX(MOON[0]);
+      if (mx !== null) {
+        const my = horizon * MOON[1], mr = Math.max(14, horizon * 0.05);
+        const mg = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 5);
+        mg.addColorStop(0, 'rgba(240,230,200,.18)'); mg.addColorStop(1, 'rgba(240,230,200,0)');
+        ctx.fillStyle = mg; ctx.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10);
+        ctx.fillStyle = '#eee6cf'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(150,140,115,.35)'; ctx.beginPath(); ctx.arc(mx - mr * 0.3, my - mr * 0.25, mr * 0.22, 0, Math.PI * 2); ctx.arc(mx + mr * 0.25, my + mr * 0.3, mr * 0.16, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    function castFloor(w, h, horizon, focal, dirX, dirY, plX, plY) {
+      const fw = Math.ceil(w / FS), fh = Math.ceil(h / FS);
+      if (floorCan.width !== fw || floorCan.height !== fh) {
+        floorCan.width = fw; floorCan.height = fh;
+        floorImg = floorCtx.createImageData(fw, fh);
+        floor32 = new Uint32Array(floorImg.data.buffer);
+      }
+      floor32.fill(0);
+      const { R, G, B } = floorTex, M = FT - 1;
+      const r0x = dirX - plX, r0y = dirY - plY, r1x = dirX + plX, r1y = dirY + plY;
+      for (let y = Math.max(0, Math.floor(horizon / FS)); y < fh; y++) {
+        const p = (y + 0.5) * FS - horizon;
+        if (p <= 0.5) continue;
+        const rowDist = 0.5 * focal / p;
+        const v = fogF(rowDist), iv = 1 - v;
+        const fr = FOG[0] * iv, fg = FOG[1] * iv, fb = FOG[2] * iv;
+        let fx = player.x + rowDist * r0x, fy = player.y + rowDist * r0y;
+        const sx = rowDist * (r1x - r0x) / fw, sy = rowDist * (r1y - r0y) / fw;
+        let idx = y * fw;
+        for (let x = 0; x < fw; x++) {
+          const t = (((fy * FT) | 0) & M) * FT + (((fx * FT) | 0) & M);
+          floor32[idx++] = 0xff000000 | ((B[t] * v + fb) << 16) | ((G[t] * v + fg) << 8) | (R[t] * v + fr);
+          fx += sx; fy += sy;
+        }
+      }
+      floorCtx.putImageData(floorImg, 0, 0);
+      ctx.drawImage(floorCan, 0, 0, fw * FS, fh * FS);
+    }
+
     function render(full) {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (!w || !h) return;
@@ -1297,17 +1570,14 @@
       const colW = 2, rays = Math.ceil(w / colW);
       if (zbuf.length !== rays) zbuf = new Float32Array(rays);
       view = { w, h, focal, dirX, dirY, horizon, colW, rays };
+      if (!vignette || vignette.w !== w || vignette.h !== h) vignette = { w, h, c: makeVignette(w, h) };
 
-      let g = ctx.createLinearGradient(0, 0, 0, horizon);
-      g.addColorStop(0, '#1d2531'); g.addColorStop(1, '#4b5b6e');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, w, horizon + 1);
-      g = ctx.createLinearGradient(0, horizon, 0, h);
-      g.addColorStop(0, '#34383b'); g.addColorStop(1, '#646156');
-      ctx.fillStyle = g; ctx.fillRect(0, horizon, w, h - horizon);
-      drawFloorGrid();
+      drawSky(w, horizon, planeLen);
+      castFloor(w, h, horizon, focal, dirX, dirY, plX, plY);
 
+      // 벽 (레이캐스팅)
       const px = player.x, py = player.y;
-      ctx.fillStyle = '#0c1018';
+      ctx.fillStyle = FOG_CSS;
       for (let i = 0; i < rays; i++) {
         const camX = 2 * (i * colW + colW / 2) / w - 1;
         const rdx = dirX + plX * camX, rdy = dirY + plY * camX;
@@ -1331,17 +1601,27 @@
         const tex = (textures[tile] || textures['#'])[((mx * 7 + my * 13) % 3 + 3) % 3];
         ctx.globalAlpha = 1;
         ctx.drawImage(tex, texX, 0, 1, TEX, i * colW, top, colW + 0.5, lineH);
-        const shade = Math.min(0.88, dist / 15 + (side ? 0.16 : 0));
+        const shade = Math.min(0.95, 1 - fogF(dist) + (side ? 0.14 : 0));
         if (shade > 0.02) { ctx.globalAlpha = shade; ctx.fillRect(i * colW, top, colW + 0.5, lineH); }
       }
       ctx.globalAlpha = 1;
 
+      // 스프라이트 (먼 것부터)
       const list = [];
       for (const e of enemies) {
-        const spr = enemySprites[e.type];
-        const img = e.flash > 0 ? spr.flash : spr.walk[Math.floor(e.t * 1.6) % 2];
-        const bounce = Math.abs(Math.sin(e.t * 1.6 * Math.PI)) * 0.04;
-        list.push({ x: e.x, y: e.y, draw: d => { drawSprite(img, e.x, e.y, e.T.size / 2 + bounce, e.T.size, d); if (full) drawEnemyBar(e); } });
+        list.push({ x: e.x, y: e.y, draw: d => {
+          const lvl = Math.min(3, Math.round((1 - fogF(d)) * 4));
+          const spr = enemySprites[e.type];
+          const img = e.flash > 0 ? spr.flash : spr.walk[Math.floor(e.t * 1.6) % 2][lvl];
+          const bounce = Math.abs(Math.sin(e.t * 1.6 * Math.PI)) * 0.04;
+          const sp = project(e.x, e.y, 0.01);
+          if (sp && visibleAt(sp)) {
+            ctx.fillStyle = `rgba(0,0,0,${0.4 * fogF(d)})`;
+            ctx.beginPath(); ctx.ellipse(sp.sx, sp.sy, e.T.r * 1.25 * sp.scale, e.T.r * 0.3 * sp.scale, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          drawSprite(img, e.x, e.y, e.T.size / 2 + bounce, e.T.size, d);
+          if (full) drawEnemyBar(e);
+        } });
       }
       if (weapon) for (const s of shots) {
         const img = weapon.frames[Math.floor(s.spin) % 8];
@@ -1355,7 +1635,10 @@
       for (const a of arcs) drawArc(a);
       for (const t of texts) drawText(t);
 
+      ctx.drawImage(vignette.c, 0, 0, w, h);
       if (!full) return;
+      swayX += (clamp(-turnImpulse * 0.7, -34, 34) - swayX) * 0.2;
+      turnImpulse *= 0.55;
       drawWeapon(w, h);
       drawCrosshair(w, h);
       drawMinimap(w);
@@ -1363,7 +1646,7 @@
       const red = Math.max(hurtT * 0.5, low);
       if (red > 0.01) {
         const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.7);
-        vg.addColorStop(0, 'rgba(200,30,30,0)'); vg.addColorStop(1, `rgba(200,30,30,${red})`);
+        vg.addColorStop(0, 'rgba(200,30,40,0)'); vg.addColorStop(1, `rgba(200,30,40,${red})`);
         ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
       }
     }
@@ -1405,15 +1688,15 @@
       if (e.hp >= e.maxHp) return;
       const p = project(e.x, e.y, e.T.size + 0.12);
       if (!p || !visibleAt(p)) return;
-      const bw = Math.min(70, 0.7 * p.scale), bh = Math.max(3, Math.min(7, 0.06 * p.scale));
-      ctx.fillStyle = '#000a'; ctx.fillRect(p.sx - bw / 2 - 1, p.sy - 1, bw + 2, bh + 2);
-      ctx.fillStyle = e.burnT > 0 ? '#ff9a4a' : e.slowT > 0 ? '#8fd0ff' : '#ff5a4e';
+      const bw = Math.min(64, 0.6 * p.scale), bh = Math.max(3, Math.min(5, 0.05 * p.scale));
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(p.sx - bw / 2 - 1, p.sy - 1, bw + 2, bh + 2);
+      ctx.fillStyle = e.burnT > 0 ? '#ff9a4a' : e.slowT > 0 ? '#8fd0ff' : '#ff4f5e';
       ctx.fillRect(p.sx - bw / 2, p.sy, bw * Math.max(0, e.hp / e.maxHp), bh);
     }
     function drawParticle(pt) {
       const p = project(pt.x, pt.y, pt.z);
       if (!p || !visibleAt(p)) return;
-      ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.max * 1.5));
+      ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / pt.max * 1.5)) * (0.3 + 0.7 * fogF(p.depth));
       ctx.fillStyle = pt.color;
       ctx.beginPath(); ctx.arc(p.sx, p.sy, Math.min(16, Math.max(1, pt.size * p.scale)), 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
@@ -1434,91 +1717,88 @@
       const p = project(t.x, t.y, t.z);
       if (!p || !visibleAt(p)) return;
       ctx.globalAlpha = Math.min(1, t.life / t.max * 2);
-      ctx.font = `20px ${FONT}`; ctx.textAlign = 'center';
-      ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000c'; ctx.strokeText(t.text, p.sx, p.sy);
+      ctx.font = `700 22px ${NUM_FONT}`; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(t.text, p.sx, p.sy);
       ctx.fillStyle = t.color; ctx.fillText(t.text, p.sx, p.sy);
       ctx.globalAlpha = 1;
     }
-    function drawFloorGrid() {
-      const { w, focal, dirX, dirY, horizon } = view;
-      const R = 9, cx = Math.floor(player.x), cy = Math.floor(player.y);
-      const proj = (x, y, d) => [w / 2 + (-(x - player.x) * dirY + (y - player.y) * dirX) / d * focal, horizon + 0.5 * focal / d];
-      const seg = (x1, y1, x2, y2) => {
-        let d1 = (x1 - player.x) * dirX + (y1 - player.y) * dirY, d2 = (x2 - player.x) * dirX + (y2 - player.y) * dirY;
-        const near = 0.2;
-        if (d1 < near && d2 < near) return;
-        if (d1 < near) { const t = (near - d1) / (d2 - d1); x1 += (x2 - x1) * t; y1 += (y2 - y1) * t; d1 = near; }
-        if (d2 < near) { const t = (near - d2) / (d1 - d2); x2 += (x1 - x2) * t; y2 += (y1 - y2) * t; d2 = near; }
-        const a = proj(x1, y1, d1), b = proj(x2, y2, d2);
-        ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
-      };
-      ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      const x0 = Math.max(0, cx - R), x1 = Math.min(MW, cx + R + 1), y0 = Math.max(0, cy - R), y1 = Math.min(MH, cy + R + 1);
-      for (let x = x0; x <= x1; x++) seg(x, y0, x, y1);
-      for (let y = y0; y <= y1; y++) seg(x0, y, x1, y);
-      ctx.stroke();
-    }
     function drawWeapon(w, h) {
-      const img = weapon.sticker;
-      const maxDim = Math.max(img.width, img.height);
-      const s = Math.min(w, h) * 0.46 / maxDim;
+      const M = weapon.model, c = M.canvas;
+      const s = Math.min(w * 0.4 / (c.width - 72), h * 0.46 / (c.height - 72));
+      const k = h / 800;
       const reloadK = reloadT > 0 ? Math.sin((1 - reloadT / weapon.reload) * Math.PI) : 0;
       const bx = Math.sin(player.bob / 2) * 10 * player.move;
       const by = Math.abs(Math.cos(player.bob / 2)) * 8 * player.move;
-      const baseX = w * 0.62 + bx + recoil * 10;
-      const baseY = h - img.height * s * 0.32 + by + recoil * 18 + reloadK * h * 0.28;
-      const rot = 0.32 + reloadK * 0.6 - recoil * 0.08;
+      const ax = w * 0.8 + bx + recoil * 12 + swayX;
+      const ay = h * 0.86 + by + recoil * 16 + reloadK * h * 0.32;
+      const rot = -0.03 + reloadK * 0.45 - recoil * 0.05 + swayX * 0.0015;
       ctx.save();
+      ctx.translate(ax, ay); ctx.rotate(rot);
+      // 소매 (무기 뒤)
+      const sg = ctx.createLinearGradient(0, 0, 260 * k, 260 * k);
+      sg.addColorStop(0, '#2a303b'); sg.addColorStop(1, '#12151b');
       ctx.lineCap = 'round';
-      ctx.strokeStyle = '#1d1f24'; ctx.lineWidth = Math.min(w, h) * 0.085 + 6;
-      ctx.beginPath(); ctx.moveTo(w + 40, h + 40); ctx.lineTo(baseX + 10, baseY + img.height * s * 0.2); ctx.stroke();
-      ctx.strokeStyle = '#f2c9a0'; ctx.lineWidth = Math.min(w, h) * 0.085;
-      ctx.stroke();
-      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 128 * k;
+      ctx.beginPath(); ctx.moveTo(40 * k, 60 * k); ctx.lineTo(360 * k, 380 * k); ctx.stroke();
+      ctx.strokeStyle = sg; ctx.lineWidth = 122 * k; ctx.stroke();
+      ctx.strokeStyle = '#3b4250'; ctx.lineWidth = 116 * k;
+      ctx.beginPath(); ctx.moveTo(52 * k, 72 * k); ctx.lineTo(70 * k, 90 * k); ctx.stroke();
+      // 무기 본체
+      ctx.drawImage(c, -M.grip.x * s, -M.grip.y * s, c.width * s, c.height * s);
+      // 장갑 낀 손 (무기 앞)
       ctx.save();
-      ctx.translate(baseX, baseY); ctx.rotate(rot); ctx.scale(-s, s);
-      ctx.shadowColor = '#0008'; ctx.shadowBlur = 10;
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      ctx.translate(-6 * k, 18 * k); ctx.rotate(-0.42);
+      const gg = ctx.createLinearGradient(0, -40 * k, 0, 40 * k);
+      gg.addColorStop(0, '#3a404c'); gg.addColorStop(1, '#171a21');
+      ctx.fillStyle = gg; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.roundRect(-44 * k, -34 * k, 96 * k, 72 * k, 24 * k); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.09)'; ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) { const x = (-22 + i * 22) * k; ctx.beginPath(); ctx.moveTo(x, -30 * k); ctx.lineTo(x, -6 * k); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.beginPath(); ctx.roundRect(-36 * k, -28 * k, 80 * k, 10 * k, 5 * k); ctx.fill();
       ctx.restore();
+      // 총구 불꽃
       if (muzzleT > 0) {
-        const lx = -(weapon.muzzleLocal.x - img.width / 2) * s, ly = (weapon.muzzleLocal.y - img.height / 2) * s;
-        const mx = baseX + lx * Math.cos(rot) - ly * Math.sin(rot), my = baseY + lx * Math.sin(rot) + ly * Math.cos(rot);
-        const r = 26 + weapon.weight * 30;
+        const mx = (M.muzzle.x - M.grip.x) * s, my = (M.muzzle.y - M.grip.y) * s;
+        const r = 30 + weapon.weight * 34;
         const fg = ctx.createRadialGradient(mx, my, 0, mx, my, r);
-        fg.addColorStop(0, '#ffffffee'); fg.addColorStop(0.35, weapon.color + 'cc'); fg.addColorStop(1, weapon.color + '00');
+        fg.addColorStop(0, '#ffffffee'); fg.addColorStop(0.3, weapon.color + 'dd'); fg.addColorStop(1, weapon.color + '00');
+        ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(mx, my, r, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
       }
+      ctx.restore();
     }
     function drawCrosshair(w, h) {
-      const cx = w / 2, cy = h / 2, gap = 5 + recoil * 7;
-      ctx.lineCap = 'round';
-      for (const [col, lw] of [['#000a', 4.5], ['#fff', 2]]) {
+      const cx = w / 2, cy = h / 2, gap = 5 + recoil * 8;
+      ctx.lineCap = 'butt';
+      for (const [col, lw] of [['rgba(0,0,0,.55)', 4], ['#fff', 2]]) {
         ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
-        ctx.moveTo(cx - 11 - gap, cy); ctx.lineTo(cx - gap, cy); ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + 11 + gap, cy);
-        ctx.moveTo(cx, cy - 11 - gap); ctx.lineTo(cx, cy - gap); ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + 11 + gap);
+        ctx.moveTo(cx - 10 - gap, cy); ctx.lineTo(cx - gap, cy); ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + 10 + gap, cy);
+        ctx.moveTo(cx, cy - 10 - gap); ctx.lineTo(cx, cy - gap); ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + 10 + gap);
         ctx.stroke();
       }
-      ctx.fillStyle = '#fff'; ctx.fillRect(cx - 1, cy - 1, 2, 2);
       if (hitT > 0) {
-        ctx.strokeStyle = '#ff5a4e'; ctx.lineWidth = 3; ctx.beginPath();
-        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.moveTo(cx + sx * 8, cy + sy * 8); ctx.lineTo(cx + sx * 16, cy + sy * 16); }
+        ctx.strokeStyle = '#ff4f5e'; ctx.lineWidth = 2.5; ctx.beginPath();
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.moveTo(cx + sx * 8, cy + sy * 8); ctx.lineTo(cx + sx * 15, cy + sy * 15); }
         ctx.stroke();
       }
     }
     function drawMinimap(w) {
-      const size = Math.min(136, w * 0.18), cell = size / MW, ox = w - size - 20, oy = 18;
-      ctx.fillStyle = 'rgba(8,10,16,.72)'; ctx.fillRect(ox - 5, oy - 5, size + 10, size + 10);
-      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; ctx.strokeRect(ox - 5, oy - 5, size + 10, size + 10);
-      ctx.fillStyle = 'rgba(230,220,198,.6)';
+      const size = Math.min(132, w * 0.17), cell = size / MW, ox = w - size - 24, oy = 22;
+      ctx.fillStyle = 'rgba(8,10,15,.62)'; ctx.fillRect(ox - 6, oy - 6, size + 12, size + 12);
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1; ctx.strokeRect(ox - 6.5, oy - 6.5, size + 13, size + 13);
+      ctx.fillStyle = 'rgba(220,226,236,.32)';
       for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (MAP[y][x] !== '.') ctx.fillRect(ox + x * cell, oy + y * cell, cell + 0.3, cell + 0.3);
-      ctx.fillStyle = '#ff5a4e';
-      for (const e of enemies) { ctx.beginPath(); ctx.arc(ox + e.x * cell, oy + e.y * cell, Math.max(2, cell * 0.4), 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#ff4f5e';
+      for (const e of enemies) { ctx.beginPath(); ctx.arc(ox + e.x * cell, oy + e.y * cell, Math.max(2, cell * 0.38), 0, Math.PI * 2); ctx.fill(); }
       const px = ox + player.x * cell, py = oy + player.y * cell, a = player.a;
-      ctx.fillStyle = '#ffd23f'; ctx.beginPath();
-      ctx.moveTo(px + Math.cos(a) * 7, py + Math.sin(a) * 7);
-      ctx.lineTo(px + Math.cos(a + 2.5) * 5, py + Math.sin(a + 2.5) * 5);
-      ctx.lineTo(px + Math.cos(a - 2.5) * 5, py + Math.sin(a - 2.5) * 5);
+      ctx.fillStyle = 'rgba(245,197,66,.16)';
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.arc(px, py, cell * 5, a - 0.55, a + 0.55); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f5c542'; ctx.beginPath();
+      ctx.moveTo(px + Math.cos(a) * 6, py + Math.sin(a) * 6);
+      ctx.lineTo(px + Math.cos(a + 2.5) * 4.5, py + Math.sin(a + 2.5) * 4.5);
+      ctx.lineTo(px + Math.cos(a - 2.5) * 4.5, py + Math.sin(a - 2.5) * 4.5);
       ctx.fill();
     }
 
@@ -1529,7 +1809,7 @@
         update(dt);
         if (state === 'playing' || state === 'gameover') render(true);
       } else if (state === 'title' || (state === 'workshop' && !workshopFromGame)) {
-        player.a += dt * 0.12;
+        player.a += dt * 0.1;
         for (const e of enemies) e.t += dt * 0.9;
         render(false);
       }
@@ -1558,7 +1838,7 @@
     window.addEventListener('keyup', e => { keys[e.code] = false; });
     window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; firing = false; });
     document.addEventListener('mousemove', e => {
-      if (state === 'playing' && document.pointerLockElement === canvas) player.a += e.movementX * 0.0022;
+      if (state === 'playing' && document.pointerLockElement === canvas) { player.a += e.movementX * 0.0022; turnImpulse += e.movementX; }
     });
     canvas.addEventListener('mousedown', e => {
       if (state !== 'playing' || e.button !== 0) return;
