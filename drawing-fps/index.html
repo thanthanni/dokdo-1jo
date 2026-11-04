@@ -974,13 +974,15 @@
     for (const t in ENEMY_TYPES) enemySprites[t] = {
       walk: [0, 1].map(f => { const base = makeEnemyFrame(t, f); return [0, 0.25, 0.5, 0.75].map(a => fogged(base, a)); }),
       flash: makeEnemyFrame(t, 0, true),
+      rage: (() => { const c = makeEnemyFrame(t, 1), g = c.getContext('2d');
+        g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,60,60,.45)'; g.fillRect(0, 0, c.width, c.height); return c; })(),
     };
     const spitSprite = (() => {
       const c = document.createElement('canvas'); c.width = c.height = 32;
       const g = c.getContext('2d');
-      g.fillStyle = '#16343a'; g.beginPath(); g.arc(16, 16, 12, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = '#7fe3ee'; g.lineWidth = 2; g.stroke();
-      g.fillStyle = '#ffffffaa'; g.beginPath(); g.arc(12, 11, 3.5, 0, Math.PI * 2); g.fill();
+      const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      gr.addColorStop(0, '#f2fffd'); gr.addColorStop(0.3, '#6ff5e1'); gr.addColorStop(0.65, 'rgba(40,200,180,.55)'); gr.addColorStop(1, 'rgba(40,200,180,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
       return c;
     })();
 
@@ -1022,7 +1024,7 @@
     let ammo = 0, reloadT = 0, fireCd = 0, recoil = 0, muzzleT = 0, hitT = 0, hurtT = 0;
     let pausedAt = 0, firing = false, hadLock = false, workshopFromGame = false, lastTime = performance.now();
     let flow = new Int16Array(MW * MH), flowCell = -1, bannerT = 0, tipT = 0;
-    let zbuf = new Float32Array(1);
+    let zbuf = new Float32Array(1), hitDirs = [];
     try { best = +localStorage.getItem('doodle-fps-best') || 0; } catch (e) { best = 0; }
     $('#title-best').textContent = best;
 
@@ -1036,8 +1038,24 @@
     }
     window.addEventListener('resize', resize);
 
+    // 마우스 잠금. 링크(iframe) 안처럼 잠금이 막힌 곳에서는 lockFailed가 켜지고 커서 위치로 회전한다
+    let lockFailed = false, lockTimer = 0, mouseIn = false, mouseX = 0.5;
+    const isLocked = () => document.pointerLockElement === canvas;
     function lockPointer() {
-      try { const p = canvas.requestPointerLock?.(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* 무시 */ }
+      if (isLocked()) return;
+      const fail = () => { if (!isLocked()) setLockFailed(); };
+      try {
+        const p = canvas.requestPointerLock?.();
+        if (p && p.catch) p.catch(fail);
+        if (!canvas.requestPointerLock) fail();
+      } catch (e) { fail(); }
+      clearTimeout(lockTimer);
+      lockTimer = setTimeout(fail, 900);
+    }
+    function setLockFailed() {
+      if (lockFailed || state !== 'playing') { lockFailed = true; return; }
+      lockFailed = true;
+      showTip('마우스 잠금을 쓸 수 없는 환경이에요 · 커서를 화면 왼쪽/오른쪽으로 옮기면 그쪽으로 돌아요', 6);
     }
     function show(id, on) { $(id).classList.toggle('hidden', !on); }
     const hoverTick = () => tone(900, 900, 0.02, 'triangle', 0.012);
@@ -1046,7 +1064,7 @@
       const T = ENEMY_TYPES[type];
       const hpMul = 1 + 0.15 * Math.max(0, wave - 1);
       return { type, T, x, y, hp: T.hp * hpMul, maxHp: T.hp * hpMul, t: Math.random() * 3,
-        flash: 0, burnT: 0, burnDps: 0, slowT: 0, slowF: 0, atkCd: 0.6, shootCd: rand(1.5, 3), fxT: 0, dead: false };
+        flash: 0, windup: 0, burnT: 0, burnDps: 0, slowT: 0, slowF: 0, atkCd: 0.6, shootCd: rand(1.5, 3), fxT: 0, dead: false };
     }
     // 타이틀 배경: 괴물들이 서 있는 전장을 천천히 둘러보기
     function goTitle() {
@@ -1106,7 +1124,7 @@
     function startGame() {
       score = 0; kills = 0; wave = 0;
       Object.assign(player, { x: 11.5, y: 17.5, a: -Math.PI / 2, hp: 100, bob: 0, move: 0 });
-      enemies = []; shots = []; spits = []; particles = []; texts = []; arcs = [];
+      enemies = []; shots = []; spits = []; particles = []; texts = []; arcs = []; hitDirs = [];
       $('#killfeed').innerHTML = '';
       ammo = weapon.mag; reloadT = 0; fireCd = 0; recoil = 0; hurtT = 0;
       flowCell = -1;
@@ -1172,7 +1190,7 @@
       b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
       bannerT = secs;
     }
-    function showTip(text, secs = 4) { $('#tip').textContent = text; tipT = secs; }
+    function showTip(text, secs = 4) { $('#tip').textContent = text; hudCache['#tip'] = text; tipT = secs; }
     function updateScore() { $('#score').textContent = score; }
     function killFeed(text, pts) {
       const feed = $('#killfeed');
@@ -1324,8 +1342,9 @@
           life: rand(0.35, 0.8), max: 0.8, color, size: rand(0.018, 0.04) });
       }
     }
-    function hurtPlayer(dmg) {
+    function hurtPlayer(dmg, fromX, fromY) {
       player.hp -= dmg; hurtT = 1; sfx.hurt();
+      if (fromX !== undefined) hitDirs.push({ a: Math.atan2(fromY - player.y, fromX - player.x), t: 1.2 });
       if (player.hp <= 0) { player.hp = 0; gameOver(); }
     }
 
@@ -1333,6 +1352,14 @@
     function update(dt) {
       if (keys.ArrowLeft) player.a -= 2.4 * dt;
       if (keys.ArrowRight) player.a += 2.4 * dt;
+      if (lockFailed && !isLocked() && mouseIn) {
+        const d = mouseX - 0.5, dead = 0.08;
+        if (Math.abs(d) > dead) {
+          const k = Math.min(1, (Math.abs(d) - dead) / (0.5 - dead));
+          const turn = Math.sign(d) * k * k * 3.4 * dt;
+          player.a += turn; turnImpulse += turn * 450;
+        }
+      }
       const dx = Math.cos(player.a), dy = Math.sin(player.a);
       const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
       const str = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
@@ -1396,12 +1423,19 @@
           e.shootCd -= dt;
           if (los && dist < 9 && e.shootCd <= 0) {
             e.shootCd = rand(1.8, 2.8);
-            spits.push({ x: e.x, y: e.y, vx: px / dist * 6.5, vy: py / dist * 6.5, life: 4 });
+            spits.push({ x: e.x, y: e.y, ox: e.x, oy: e.y, vx: px / dist * 6.5, vy: py / dist * 6.5, life: 4, trail: 0 });
             sfx.spit();
           }
         }
         e.atkCd -= dt;
-        if (dist < T.r + 0.42 && e.atkCd <= 0) { e.atkCd = 1; hurtPlayer(T.dmg); if (state !== 'playing') return; }
+        const reach = T.r + 0.42;
+        if (e.windup > 0) {
+          e.windup -= dt;
+          if (e.windup <= 0) {
+            e.atkCd = 1;
+            if (dist < reach + 0.25) { hurtPlayer(T.dmg, e.x, e.y); if (state !== 'playing') return; }
+          }
+        } else if (dist < reach && e.atkCd <= 0) e.windup = 0.35;
       }
       for (let i = 0; i < enemies.length; i++) {
         const a = enemies[i];
@@ -1443,9 +1477,10 @@
       enemies = enemies.filter(e => !e.dead);
 
       for (const s of spits) {
-        s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+        s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.trail -= dt;
+        if (s.trail <= 0) { s.trail = 0.035; particles.push({ x: s.x, y: s.y, z: 0.45, vx: 0, vy: 0, vz: 0, g: 0, drag: 0, life: 0.3, max: 0.3, color: '#5fe8d4', size: 0.035 }); }
         if (isWall(s.x, s.y)) { s.life = 0; burst(s.x, s.y, 0.4, '#2f8f9a', 6, 1); }
-        else if (Math.hypot(s.x - player.x, s.y - player.y) < 0.35) { s.life = 0; hurtPlayer(ENEMY_TYPES.spitter.dmg); if (state !== 'playing') return; }
+        else if (Math.hypot(s.x - player.x, s.y - player.y) < 0.35) { s.life = 0; hurtPlayer(ENEMY_TYPES.spitter.dmg, s.ox, s.oy); if (state !== 'playing') return; }
       }
       spits = spits.filter(s => s.life > 0);
 
@@ -1459,10 +1494,12 @@
       for (const t of texts) { t.life -= dt; t.z += dt * 0.6; }
       texts = texts.filter(t => t.life > 0);
       for (const a of arcs) a.life -= dt;
+      for (const hd of hitDirs) hd.t -= dt;
+      hitDirs = hitDirs.filter(hd => hd.t > 0);
       arcs = arcs.filter(a => a.life > 0);
 
       if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('#banner').classList.remove('show'); }
-      if (tipT > 0) { tipT -= dt; if (tipT <= 0) $('#tip').textContent = ''; }
+      if (tipT > 0) tipT -= dt;
       updateHud();
     }
 
@@ -1470,6 +1507,7 @@
     function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
     function setCache(key, v, fn) { if (hudCache[key] !== v) { hudCache[key] = v; fn(v); } }
     function updateHud() {
+      if (tipT <= 0) setText('#tip', isLocked() ? '' : lockFailed ? '커서를 왼쪽/오른쪽으로 옮기면 회전 · ← → 키도 돼요' : '화면을 클릭하면 마우스로 조준해요');
       setText('#wave-label', `WAVE ${wave}`);
       const left = enemies.length + spawnQueue.length;
       setText('#enemy-label', intermission > 0 ? `다음 웨이브까지 ${Math.ceil(intermission)}초` : `남은 적 ${left}`);
@@ -1612,14 +1650,15 @@
         list.push({ x: e.x, y: e.y, draw: d => {
           const lvl = Math.min(3, Math.round((1 - fogF(d)) * 4));
           const spr = enemySprites[e.type];
-          const img = e.flash > 0 ? spr.flash : spr.walk[Math.floor(e.t * 1.6) % 2][lvl];
-          const bounce = Math.abs(Math.sin(e.t * 1.6 * Math.PI)) * 0.04;
+          const img = e.flash > 0 ? spr.flash : e.windup > 0 ? spr.rage : spr.walk[Math.floor(e.t * 1.6) % 2][lvl];
+          const lunge = e.windup > 0 ? (1 - e.windup / 0.35) * 0.18 : 0;
+          const bounce = Math.abs(Math.sin(e.t * 1.6 * Math.PI)) * 0.04 + lunge * 0.3;
           const sp = project(e.x, e.y, 0.01);
           if (sp && visibleAt(sp)) {
             ctx.fillStyle = `rgba(0,0,0,${0.4 * fogF(d)})`;
             ctx.beginPath(); ctx.ellipse(sp.sx, sp.sy, e.T.r * 1.25 * sp.scale, e.T.r * 0.3 * sp.scale, 0, 0, Math.PI * 2); ctx.fill();
           }
-          drawSprite(img, e.x, e.y, e.T.size / 2 + bounce, e.T.size, d);
+          drawSprite(img, e.x, e.y, e.T.size * (1 + lunge) / 2 + bounce, e.T.size * (1 + lunge), d);
           if (full) drawEnemyBar(e);
         } });
       }
@@ -1627,7 +1666,7 @@
         const img = weapon.frames[Math.floor(s.spin) % 8];
         list.push({ x: s.x, y: s.y, minD: 1.4, draw: d => drawSprite(img, s.x, s.y, s.z, 0.16 + weapon.radius * 0.9, d) });
       }
-      for (const s of spits) list.push({ x: s.x, y: s.y, draw: d => drawSprite(spitSprite, s.x, s.y, 0.45, 0.22, d) });
+      for (const s of spits) list.push({ x: s.x, y: s.y, draw: d => drawSprite(spitSprite, s.x, s.y, 0.45, 0.34, d) });
       for (const p of particles) list.push({ x: p.x, y: p.y, draw: () => drawParticle(p) });
       for (const it of list) it.d = (it.x - px) * dirX + (it.y - py) * dirY;
       list.sort((a, b) => b.d - a.d);
@@ -1641,6 +1680,7 @@
       turnImpulse *= 0.55;
       drawWeapon(w, h);
       drawCrosshair(w, h);
+      drawHitDirs(w, h);
       drawMinimap(w);
       const low = player.hp < 35 ? (35 - player.hp) / 35 * 0.35 : 0;
       const red = Math.max(hurtT * 0.5, low);
@@ -1724,13 +1764,13 @@
     }
     function drawWeapon(w, h) {
       const M = weapon.model, c = M.canvas;
-      const s = Math.min(w * 0.4 / (c.width - 72), h * 0.46 / (c.height - 72));
+      const s = Math.min(w * 0.33 / (c.width - 72), h * 0.38 / (c.height - 72));
       const k = h / 800;
       const reloadK = reloadT > 0 ? Math.sin((1 - reloadT / weapon.reload) * Math.PI) : 0;
       const bx = Math.sin(player.bob / 2) * 10 * player.move;
       const by = Math.abs(Math.cos(player.bob / 2)) * 8 * player.move;
       const ax = w * 0.8 + bx + recoil * 12 + swayX;
-      const ay = h * 0.86 + by + recoil * 16 + reloadK * h * 0.32;
+      const ay = h * 0.9 + by + recoil * 16 + reloadK * h * 0.32;
       const rot = -0.03 + reloadK * 0.45 - recoil * 0.05 + swayX * 0.0015;
       ctx.save();
       ctx.translate(ax, ay); ctx.rotate(rot);
@@ -1782,6 +1822,22 @@
         ctx.strokeStyle = '#ff4f5e'; ctx.lineWidth = 2.5; ctx.beginPath();
         for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.moveTo(cx + sx * 8, cy + sy * 8); ctx.lineTo(cx + sx * 15, cy + sy * 15); }
         ctx.stroke();
+      }
+    }
+    function drawHitDirs(w, h) {
+      const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.2;
+      ctx.lineCap = 'round';
+      for (const hd of hitDirs) {
+        const ang = hd.a - player.a - Math.PI / 2;   // 화면 위쪽이 정면
+        ctx.strokeStyle = `rgba(255,70,80,${Math.min(1, hd.t) * 0.85})`;
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(cx, cy, R, ang - 0.32, ang + 0.32); ctx.stroke();
+        const tx = cx + Math.cos(ang) * (R + 14), ty = cy + Math.sin(ang) * (R + 14);
+        ctx.fillStyle = ctx.strokeStyle; ctx.beginPath();
+        ctx.moveTo(tx + Math.cos(ang) * 10, ty + Math.sin(ang) * 10);
+        ctx.lineTo(tx + Math.cos(ang + 2.3) * 8, ty + Math.sin(ang + 2.3) * 8);
+        ctx.lineTo(tx + Math.cos(ang - 2.3) * 8, ty + Math.sin(ang - 2.3) * 8);
+        ctx.fill();
       }
     }
     function drawMinimap(w) {
@@ -1838,8 +1894,13 @@
     window.addEventListener('keyup', e => { keys[e.code] = false; });
     window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; firing = false; });
     document.addEventListener('mousemove', e => {
-      if (state === 'playing' && document.pointerLockElement === canvas) { player.a += e.movementX * 0.0022; turnImpulse += e.movementX; }
+      if (state === 'playing' && isLocked()) { player.a += e.movementX * 0.0022; turnImpulse += e.movementX; }
     });
+    canvas.addEventListener('mousemove', e => {
+      const r = canvas.getBoundingClientRect();
+      mouseX = (e.clientX - r.left) / r.width; mouseIn = true;
+    });
+    canvas.addEventListener('mouseleave', () => { mouseIn = false; });
     canvas.addEventListener('mousedown', e => {
       if (state !== 'playing' || e.button !== 0) return;
       if (document.pointerLockElement !== canvas) lockPointer();
@@ -1848,12 +1909,10 @@
     window.addEventListener('mouseup', () => { firing = false; });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('pointerlockchange', () => {
-      if (document.pointerLockElement === canvas) { hadLock = true; return; }
+      if (isLocked()) { hadLock = true; lockFailed = false; clearTimeout(lockTimer); return; }
       if (state === 'playing' && hadLock) pause();
     });
-    document.addEventListener('pointerlockerror', () => {
-      if (state === 'playing') showTip('마우스 잠금을 쓸 수 없어요 · ← → 키로 회전', 5);
-    });
+    document.addEventListener('pointerlockerror', () => setLockFailed());
 
     goTitle();
     resize();
