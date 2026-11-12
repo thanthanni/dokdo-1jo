@@ -1,0 +1,66 @@
+name: NIKKE daily image generation (Kaggle)
+
+on:
+  schedule:
+    - cron: "17 22 * * *"   # 매일 07:17 KST
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      LORA_DATASET: ${{ vars.KAGGLE_LORA_DATASET }}   # 예: 사용자명/nikke-loras (없으면 LoRA 없이 생성)
+      SLUG: nikke-daily-gen
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ]; then
+            echo "::error::KAGGLE_USERNAME / KAGGLE_KEY 시크릿을 등록하세요"; exit 1; fi
+
+      - run: pip install -q kaggle
+
+      - name: Write kernel metadata
+        run: |
+          python - <<'EOF'
+          import json, os
+          u, ds = os.environ["KAGGLE_USERNAME"], os.environ.get("LORA_DATASET", "")
+          meta = {"id": f"{u}/{os.environ['SLUG']}", "title": os.environ["SLUG"],
+                  "code_file": "daily_gen.py", "language": "python", "kernel_type": "script",
+                  "is_private": True, "enable_gpu": True, "enable_internet": True,
+                  "dataset_sources": [ds] if ds else [], "kernel_sources": [], "competition_sources": []}
+          json.dump(meta, open("kaggle/daily_gen/kernel-metadata.json", "w"), indent=1)
+          print(meta)
+          EOF
+
+      - name: Run on Kaggle
+        run: kaggle kernels push -p kaggle/daily_gen
+
+      - name: Wait for completion
+        run: |
+          for i in $(seq 1 80); do
+            sleep 60
+            s=$(kaggle kernels status "$KAGGLE_USERNAME/$SLUG" 2>&1 || true)
+            echo "$s"
+            case "$s" in
+              *complete*) exit 0 ;;
+              *error*|*cancel*) echo "::error::Kaggle 실행 실패 — Kaggle 노트북 로그를 확인하세요"; exit 1 ;;
+            esac
+          done
+          echo "::error::시간 초과"; exit 1
+
+      - name: Download output
+        run: kaggle kernels output "$KAGGLE_USERNAME/$SLUG" -p out && ls -la out out/out 2>/dev/null || true
+
+      # 저장소가 공개면 Artifact를 다른 사람도 받을 수 있음 → 비공개로 바꾼 뒤 변수 UPLOAD_ARTIFACT=true 설정
+      - name: Upload images (private repo only)
+        if: ${{ vars.UPLOAD_ARTIFACT == 'true' && github.event.repository.private }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nikke-images-${{ github.run_id }}
+          path: out/**/*.png
+          retention-days: 30
